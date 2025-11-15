@@ -1,0 +1,101 @@
+############################
+# ESP-IDF / CMake
+############################
+
+# Directorios de build (idf.py / CMake)
+build/
+build_*_*/
+
+# Configuración generada por ESP-IDF
+# Si prefieres versionar sdkconfig, comenta estas dos líneas.
+sdkconfig
+sdkconfig.old
+
+# Archivos de caché/auxiliares de CMake
+CMakeCache.txt
+CMakeFiles/
+cmake-build-*/
+cmake-install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+Makefile
+
+# Salidas de compilación
+*.o
+*.obj
+*.a
+*.so
+*.dll
+*.dylib
+*.exe
+*.elf
+*.bin
+*.map
+*.hex
+
+# Logs / trazas
+*.log
+*.trace
+*.pcap
+*.pcapng
+
+############################
+# ESP-IDF tools / componentes
+############################
+
+# Componentes gestionados por idf-component-manager
+managed_components/
+components/.idf/
+
+# Carpeta de herramientas de ESP-IDF si la tienes local al proyecto
+.espressif/
+
+# Cachés de Python / tests
+__pycache__/
+.pytest_cache/
+pytest_embedded_log/
+
+# Ficheros de herramientas de CI de ESP-IDF (si los usas)
+build_summary_*.xml
+app_info_*.txt
+size_info_*.txt
+
+############################
+# IDEs
+############################
+
+# Espressif-IDE (Eclipse CDT)
+# IMPORTANTE: no ignoramos .project, .cproject ni .settings
+# para poder compartir la configuración del proyecto.
+.metadata/
+*.launch
+.externalToolBuilders/
+
+# VS Code / otros editores
+.vscode/
+.idea/
+*.code-workspace
+
+############################
+# Sistema operativo
+############################
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux / genéricos
+*~
+
+############################
+# Otros temporales
+############################
+
+*.tmp
+*.temp
+*.bak
+*.old
