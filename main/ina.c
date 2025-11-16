@@ -3,14 +3,12 @@
 #include "driver/i2c.h"
 
 #include "esp_err.h"
-#include "freertos/FreeRTOS.h"
 #include "freertos/projdefs.h"
 #include "freertos/task.h"
 
 #include "esp_log.h"
 #include "hal/gpio_types.h"
 #include "hal/i2c_types.h"
-#include "hal/touch_sens_types.h"
 #include <stdint.h>
 
 static const char *TAG = "INA219";
@@ -127,7 +125,7 @@ esp_err_t ina219_read_bus_voltage(float *volts)
 	// Segun el datasheet:
 	// volts = (BUS << 3) * 4 / 1000
 	raw >>= 3;
-	*volts = raw * (4 / 1000);
+	*volts = raw * (4.0 / 1000);
 
 	return ESP_OK;
 }
