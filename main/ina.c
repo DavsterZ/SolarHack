@@ -10,6 +10,7 @@
 #include "hal/gpio_types.h"
 #include "hal/i2c_types.h"
 #include <stdint.h>
+#include <string.h>
 
 static const char *TAG = "INA219";
 
@@ -77,6 +78,7 @@ static esp_err_t ina219_write_reg(uint8_t reg, uint16_t value)
 static esp_err_t ina219_read_reg(uint8_t reg, uint16_t *value)
 {
 	uint8_t buf[2];
+	memset(buf, 0, sizeof(buf));
 	esp_err_t err = i2c_master_read_from_device(I2C_MASTER_NUM,
 												INA219_I2C_ADDR, 
 												&reg, 
