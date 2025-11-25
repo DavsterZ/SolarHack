@@ -58,6 +58,7 @@ static esp_err_t i2c_master_init(void)
  							  0);	
 }
 
+
 // Escribir un valor en un registro
 static esp_err_t ina219_write_reg(uint8_t reg, uint16_t value)
 {
@@ -77,18 +78,24 @@ static esp_err_t ina219_write_reg(uint8_t reg, uint16_t value)
 
 static esp_err_t ina219_read_reg(uint8_t reg, uint16_t *value)
 {
-	uint8_t buf[2];
-	memset(buf, 0, sizeof(buf));
-	esp_err_t err = i2c_master_read_from_device(I2C_MASTER_NUM,
-												INA219_I2C_ADDR, 
-												&reg, 
-												1, 
-												pdMS_TO_TICKS(100));
-	if (err != ESP_OK)
-		return err;
-	
-	*value = ((uint16_t)buf[0] << 8) | buf[1];
-	return ESP_OK;
+    uint8_t buf[2];
+
+    // Primero escribir el registro que quieres leer
+    esp_err_t err = i2c_master_write_read_device(
+        I2C_MASTER_NUM,
+        INA219_I2C_ADDR,
+        &reg, 1,        // escribir 1 byte: dirección del registro
+        buf, 2,         // leer 2 bytes
+        pdMS_TO_TICKS(100)
+    );
+
+    if (err != ESP_OK)
+        return err;
+
+    // Combinar MSB y LSB
+    *value = (buf[0] << 8) | buf[1];
+
+    return ESP_OK;
 }
 
 esp_err_t ina219_init(void)
@@ -123,6 +130,8 @@ esp_err_t ina219_read_bus_voltage(float *volts)
 	esp_err_t err = ina219_read_reg(INA219_REG_BUS_VOLT, &raw);
 	if (err != ESP_OK)
 		return err;
+
+	ESP_LOGI("INA219", "BUS_VOLT reg raw = 0x%04X", raw);
 
 	// Segun el datasheet:
 	// volts = (BUS << 3) * 4 / 1000
