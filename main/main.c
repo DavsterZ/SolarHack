@@ -1,3 +1,4 @@
+#include "battery.h"
 #include "ina.h"
 
 #include "esp_log.h"
@@ -26,7 +27,10 @@ void app_main(void)
 		float v_salida = 0.0f;
 		
 		if (ina219_read_bus_voltage(&ina_entrada ,&v_entrada) == ESP_OK && ina219_read_bus_voltage(&ina_salida ,&v_salida) == ESP_OK)
-			ESP_LOGI(TAG, "Entrada = %.3f V, Salida = %.3f V",v_entrada, v_salida);
+		{
+			float soc = battery_porcent_from_voltage(v_entrada);
+			ESP_LOGI(TAG, "Entrada = %.3f V, Salida = %.3f V Porc Bat = %.2f", v_entrada, v_salida, soc);
+		}
 		else
 			ESP_LOGE(TAG, "Error leyendo bus voltage");
 

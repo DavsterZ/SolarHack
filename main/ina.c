@@ -107,7 +107,7 @@ static esp_err_t ina219_read_reg(ina219_t *dev ,uint8_t reg, uint16_t *value)
     return ESP_OK;
 }
 
-esp_err_t ina219_init(ina219_t *dev, uint8_t i2c_addr)
+esp_err_t ina219_init(ina219_t *dev, uint8_t i2c_addr, float shunt_ohms, float max_current_A)
 {
 	if (!dev) return ESP_ERR_INVALID_ARG;
 
@@ -129,8 +129,25 @@ esp_err_t ina219_init(ina219_t *dev, uint8_t i2c_addr)
 	
 	// Haciendo un delay para darle tiempo a hacer el reset
 	vTaskDelay(pdMS_TO_TICKS(1));
+
+	// Current_LSB = Imax / 32767
+	float current_lsb = max_current_A / 32767.0f;
+	dev->current_lsb = current_lsb;
+	dev->power_lbs = 20.0f * current_lsb;
+
+	// Calibracion: Cal = trunc(0.04096 / (Current_LSB * Rshunt))
+	float calib_f = 0.04096f / (current_lsb * shunt_ohms);
+	if (calib_f > 65535.0f) calib_f = 65535.0f;
+	uint16_t calib = (uint16_t)(calib_f + 0.5f);
 	
-	ESP_LOGI(TAG, "INA219 (0x%02X) inicializado correctamente", dev->i2c_addr);
+	err = ina219_write_reg(dev, INA219_REG_CALIB, calib);
+	if (err != ESP_OK) {
+		ESP_LOGI(TAG, "Error escribiendo CALIB en INA219(0x%02X): %s",dev->i2c_addr, esp_err_to_name(err));
+		return err;
+	}
+	
+	
+	ESP_LOGI(TAG, "INA219(0x%02X) calibrado: Rshunt=%.3fΩ, Imax=%.2fA, I_LSB=%.6fA, CAL=0x%04X", dev->i2c_addr, shunt_ohms, max_current_A, current_lsb, calib);
 	return ESP_OK;
 }
 
@@ -144,12 +161,41 @@ esp_err_t ina219_read_bus_voltage(ina219_t *dev, float *volts)
 	if (err != ESP_OK)
 		return err;
 
-	ESP_LOGI("INA219", "BUS_VOLT reg raw = 0x%04X", raw);
-
 	// Segun el datasheet:
 	// volts = (BUS << 3) * 4 / 1000
 	raw >>= 3;
 	*volts = (float)raw * (4.0 / 1000);
+
+	return ESP_OK;
+}
+
+esp_err_t ina219_read_current(ina219_t *dev, float *current_A)
+{
+	if (!dev || !current_A)
+		return 	ESP_ERR_INVALID_ARG;
+
+	uint16_t raw_u;
+	esp_err_t err = ina219_read_reg(dev, INA219_REG_CURRENT, &raw_u);
+	if (err != ESP_OK)
+		return err;
+
+	int16_t raw_a = (int16_t)raw_u;
+	*current_A = (float)raw_a * dev->current_lsb;
+
+	return ESP_OK;
+}
+
+esp_err_t ina219_iread_power(ina219_t *dev, float *power_W)
+{
+	if (!dev || !power_W)
+		return 	ESP_ERR_INVALID_ARG;
+
+	uint16_t raw_w;
+	esp_err_t err = ina219_read_reg(dev, INA219_REG_POWER, &raw_w);
+	if (err != ESP_OK)
+		return err;
+
+	*power_W = (float)raw_w * dev->power_lbs;
 
 	return ESP_OK;
 }
