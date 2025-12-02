@@ -50,11 +50,11 @@ void app_main(void)
 
 		
 		if (ina219_read_bus_voltage(&ina_entrada ,&v_entrada) == ESP_OK && 
-			ina219_read_bus_voltage(&ina_salida ,&v_salida) == ESP_OK && 
-			ina219_read_bus_voltage(&ina_salida ,&i_entrada) == ESP_OK && 
-			ina219_read_bus_voltage(&ina_salida ,&i_salida) == ESP_OK && 
-			ina219_read_bus_voltage(&ina_salida ,&w_entrada) == ESP_OK && 
-			ina219_read_bus_voltage(&ina_salida ,&w_salida) == ESP_OK)
+			ina219_read_current(&ina_entrada ,&i_entrada) == ESP_OK &&  
+			ina219_read_power(&ina_entrada ,&w_entrada) == ESP_OK && 
+			ina219_read_bus_voltage(&ina_salida ,&v_salida) == ESP_OK &&
+			ina219_read_current(&ina_salida ,&i_salida) == ESP_OK && 
+			ina219_read_power(&ina_salida ,&w_salida) == ESP_OK)
 		{	
 
 			// OJO: aquí asumimos que i_bat > 0 significa que la batería
