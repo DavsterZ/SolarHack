@@ -19,4 +19,4 @@ esp_err_t ina219_read_bus_voltage(ina219_t *dev ,float *volts);
 esp_err_t ina219_read_current(ina219_t *dev, float *current_A);
 
 // Lee la potencia del registro POWER calibrado
-esp_err_t ina219_iread_power(ina219_t *dev, float *power_W);
+esp_err_t ina219_read_power(ina219_t *dev, float *power_W);
