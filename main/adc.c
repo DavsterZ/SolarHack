@@ -45,7 +45,7 @@ ldr_data_t g_ldr_data[LDR_COUNT];
 
 static adc_oneshot_unit_handle_t s_adc1_handle = NULL;
 static adc_cali_handle_t s_adc1_cali_handle = NULL;
-static bool s_adc_calibrated = NULL;
+static bool s_adc_calibrated = false;
 
 
 static void adc_hw_init(void);
@@ -83,9 +83,8 @@ void adc_task(void *pvParameters) {
                      g_ldr_data[i].raw,
                      g_ldr_data[i].voltage_mv,
                      g_ldr_data[i].resistance_kohm);
-           	
-           	vTaskDelay(pdMS_TO_TICKS(3000));
 		}
+		vTaskDelay(pdMS_TO_TICKS(3000));
 	}
 }
 
