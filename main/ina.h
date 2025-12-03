@@ -9,6 +9,20 @@ typedef struct {
 	float power_lbs; 	// Registro POWER
 } ina219_t;
 
+typedef struct {
+    float bus_voltage_V;
+    float current_A;
+    float power_W;
+} ina219_data_t;
+
+typedef enum {
+    INA219_DEVICE_PANEL = 0,
+    INA219_DEVICE_BATTERY,
+    INA219_DEVICE_MAX
+} ina219_device_t;
+
+extern ina219_data_t g_ina219_data[INA219_DEVICE_MAX];
+
 // Inicia una instancia de INA219 con la direccion I2C dada
 esp_err_t ina219_init(ina219_t *dev, uint8_t i2c_addr, float shunt_ohms, float max_current_A);
 
@@ -20,3 +34,6 @@ esp_err_t ina219_read_current(ina219_t *dev, float *current_A);
 
 // Lee la potencia del registro POWER calibrado
 esp_err_t ina219_read_power(ina219_t *dev, float *power_W);
+
+void ina_task(void *pvParameters);
+

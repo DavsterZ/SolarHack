@@ -30,6 +30,7 @@ static const char *TAG = "INA219";
 #define INA219_REG_CURRENT     0x04
 #define INA219_REG_CALIB       0x05
 
+
 // ------------- I2C ---------------
 static esp_err_t i2c_master_init(void)
 {
