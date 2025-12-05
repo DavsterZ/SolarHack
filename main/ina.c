@@ -1,4 +1,7 @@
 #include "ina.h"
+#include "freertos/idf_additions.h"
+#include "freertos/projdefs.h"
+#include "protect.h"
 
 #include "driver/i2c.h"
 
@@ -224,14 +227,23 @@ void ina_task(void *pvParameters)
 
             // Leer sensores
             // Podrías añadir chequeo de errores si quieres robustez
-            ina219_read_bus_voltage(devices[i], &v);
-            ina219_read_current(devices[i], &current);
-            ina219_read_power(devices[i], &p);
-
-            // Actualizar la estructura global
-            g_ina219_data[i].bus_voltage_V = v;
-            g_ina219_data[i].current_A = current;
-            g_ina219_data[i].power_W = p;
+            if(ina219_read_bus_voltage(devices[i], &v) == ESP_OK &&
+               ina219_read_current(devices[i], &current) == ESP_OK &&
+               ina219_read_power(devices[i], &p) == ESP_OK) 
+			{
+				if(g_data_mutex != NULL) {
+					if(xSemaphoreTake(g_data_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+						// Actualizar la estructura global
+			            g_ina219_data[i].bus_voltage_V = v;
+			            g_ina219_data[i].current_A = current;
+			            g_ina219_data[i].power_W = p;
+						
+						xSemaphoreGive(g_data_mutex);
+					}
+				}
+			} else {
+				ESP_LOGW(TAG, "Error leyendo sensor INA %d", i);
+			} 
         }
 
 		vTaskDelay(pdMS_TO_TICKS(1000));

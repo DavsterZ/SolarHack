@@ -4,6 +4,8 @@
 
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/idf_additions.h"
+#include "freertos/projdefs.h"
 #include "freertos/task.h"
 #include "esp_log.h"
 
@@ -12,6 +14,7 @@
 #include "esp_adc/adc_cali_scheme.h"
 
 #include "adc.h"
+#include "protect.h"
 //#include "mqtt_protocol.h"
 //#include "http_protocol.h"
 
@@ -73,10 +76,17 @@ void adc_task(void *pvParameters) {
 			
 			int resistence_ohm = calc_ohm(adc_raw);
 			
-			// Guardar en el array global
-			g_ldr_data[i].raw = adc_raw;
-			g_ldr_data[i].voltage_mv = adc_voltage;
-			g_ldr_data[i].resistance_kohm = resistence_ohm / 1000.0f;
+			if(g_data_mutex != NULL) {
+				if(xSemaphoreTake(g_data_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+					// Guardar en el array global
+					g_ldr_data[i].raw = adc_raw;
+					g_ldr_data[i].voltage_mv = adc_voltage;
+					g_ldr_data[i].resistance_kohm = resistence_ohm / 1000.0f;
+					
+					xSemaphoreGive(g_data_mutex);
+				}
+			}
+			
 		
 			ESP_LOGI(TAG, "%s -> Raw: %d, Voltage: %d mV, R: %.2f kOhm",
                      s_ldr_names[i],
