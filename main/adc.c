@@ -50,7 +50,7 @@ static bool s_adc_calibrated = false;
 
 static void adc_hw_init(void);
 static bool adc_calibration_init(adc_unit_t unit, adc_atten_t atten, adc_cali_handle_t *out_handle);
-static void adc_calibration_deinit(adc_cali_handle_t handle);
+// static void adc_calibration_deinit(adc_cali_handle_t handle);
 static int calc_ohm(int raw_data);
 
 //#define PROTOCOL			CONFIG_SELECT_PROTOCOL
@@ -99,8 +99,9 @@ static void adc_hw_init(void) {
         .atten = ADC_ATTEN,
     };
     
-    for (int i = 0; i < LDR_COUNT; i++)
+    for (int i = 0; i < LDR_COUNT; i++) {
         ESP_ERROR_CHECK(adc_oneshot_config_channel(s_adc1_handle, s_ldr_channels[i], &config));
+    }
 
 	s_adc_calibrated = adc_calibration_init(ADC_UNIT_1,
                                             ADC_ATTEN,
@@ -129,9 +130,11 @@ static bool adc_calibration_init(adc_unit_t unit, adc_atten_t atten, adc_cali_ha
     return (ret == ESP_OK);
 }
 
+/*
 static void adc_calibration_deinit(adc_cali_handle_t handle) {
     ESP_ERROR_CHECK(adc_cali_delete_scheme_line_fitting(handle));
 }
+*/
 
 static int calc_ohm(int raw_data) {
     return LDR_MAX_OHM - (LDR_MAX_OHM - LDR_MIN_OHM) * (raw_data / 4095.0);

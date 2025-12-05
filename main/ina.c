@@ -3,6 +3,7 @@
 #include "driver/i2c.h"
 
 #include "esp_err.h"
+#include "esp_log.h"
 #include "freertos/task.h"
 #include "freertos/FreeRTOS.h"
 
@@ -211,8 +212,8 @@ void ina_task(void *pvParameters)
 	ina219_t dev_panel;
 	ina219_t dev_battery;
 
-	ESP_ERRRO_CHECK(ina219_init(&dev_panel, INA_PANEL_ADDR, INA_RSHUNT_OHMS, INA_PANEL_IMAX_A));
-	ESP_ERRRO_CHECK(ina219_init(&dev_battery, INA_BAT_ADDR, INA_RSHUNT_OHMS, INA_BAT_IMAX_A));
+	ESP_ERROR_CHECK(ina219_init(&dev_panel, INA_PANEL_ADDR, INA_RSHUNT_OHMS, INA_PANEL_IMAX_A));
+	ESP_ERROR_CHECK(ina219_init(&dev_battery, INA_BAT_ADDR, INA_RSHUNT_OHMS, INA_BAT_IMAX_A));
 
 	ina219_t* devices[INA219_DEVICE_MAX] = { &dev_panel, &dev_battery };
 
