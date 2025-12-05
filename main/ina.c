@@ -3,16 +3,18 @@
 #include "driver/i2c.h"
 
 #include "esp_err.h"
-#include "freertos/projdefs.h"
 #include "freertos/task.h"
+#include "freertos/FreeRTOS.h"
 
-#include "esp_log.h"
-#include "hal/gpio_types.h"
-#include "hal/i2c_types.h"
-#include <stdint.h>
 #include <stdbool.h>
 
 static const char *TAG = "INA219";
+
+#define INA_PANEL_ADDR   0x40
+#define INA_BAT_ADDR     0x41
+#define INA_RSHUNT_OHMS  0.1f	// Cambiar
+#define INA_PANEL_IMAX_A 1.0f
+#define INA_BAT_IMAX_A   1.0f
 
 // Pines y configuracion de I2C
 #define I2C_MASTER_SCL 22
@@ -30,6 +32,7 @@ static const char *TAG = "INA219";
 #define INA219_REG_CURRENT     0x04
 #define INA219_REG_CALIB       0x05
 
+ina219_data_t g_ina219_data[INA219_DEVICE_MAX];
 
 // ------------- I2C ---------------
 static esp_err_t i2c_master_init(void)
@@ -108,7 +111,7 @@ static esp_err_t ina219_read_reg(ina219_t *dev ,uint8_t reg, uint16_t *value)
     return ESP_OK;
 }
 
-esp_err_t ina219_init(ina219_t *dev, uint8_t i2c_addr, float shunt_ohms, float max_current_A)
+static esp_err_t ina219_init(ina219_t *dev, uint8_t i2c_addr, float shunt_ohms, float max_current_A)
 {
 	if (!dev) return ESP_ERR_INVALID_ARG;
 
@@ -152,7 +155,7 @@ esp_err_t ina219_init(ina219_t *dev, uint8_t i2c_addr, float shunt_ohms, float m
 	return ESP_OK;
 }
 
-esp_err_t ina219_read_bus_voltage(ina219_t *dev, float *volts)
+static esp_err_t ina219_read_bus_voltage(ina219_t *dev, float *volts)
 {
 	if (!dev || !volts)
 		return 	ESP_ERR_INVALID_ARG;
@@ -170,7 +173,7 @@ esp_err_t ina219_read_bus_voltage(ina219_t *dev, float *volts)
 	return ESP_OK;
 }
 
-esp_err_t ina219_read_current(ina219_t *dev, float *current_A)
+static esp_err_t ina219_read_current(ina219_t *dev, float *current_A)
 {
 	if (!dev || !current_A)
 		return 	ESP_ERR_INVALID_ARG;
@@ -186,7 +189,7 @@ esp_err_t ina219_read_current(ina219_t *dev, float *current_A)
 	return ESP_OK;
 }
 
-esp_err_t ina219_read_power(ina219_t *dev, float *power_W)
+static esp_err_t ina219_read_power(ina219_t *dev, float *power_W)
 {
 	if (!dev || !power_W)
 		return 	ESP_ERR_INVALID_ARG;
@@ -199,6 +202,38 @@ esp_err_t ina219_read_power(ina219_t *dev, float *power_W)
 	*power_W = (float)raw_w * dev->power_lbs;
 
 	return ESP_OK;
+}
+
+void ina_task(void *pvParameters) 
+{
+	(void) pvParameters;
+
+	ina219_t dev_panel;
+	ina219_t dev_battery;
+
+	ESP_ERRRO_CHECK(ina219_init(&dev_panel, INA_PANEL_ADDR, INA_RSHUNT_OHMS, INA_PANEL_IMAX_A));
+	ESP_ERRRO_CHECK(ina219_init(&dev_battery, INA_BAT_ADDR, INA_RSHUNT_OHMS, INA_BAT_IMAX_A));
+
+	ina219_t* devices[INA219_DEVICE_MAX] = { &dev_panel, &dev_battery };
+
+	while(1) {
+		for (int i = 0; i < INA219_DEVICE_MAX; i++) {
+            float v = 0, current = 0, p = 0;
+
+            // Leer sensores
+            // Podrías añadir chequeo de errores si quieres robustez
+            ina219_read_bus_voltage(devices[i], &v);
+            ina219_read_current(devices[i], &current);
+            ina219_read_power(devices[i], &p);
+
+            // Actualizar la estructura global
+            g_ina219_data[i].bus_voltage_V = v;
+            g_ina219_data[i].current_A = current;
+            g_ina219_data[i].power_W = p;
+        }
+
+		vTaskDelay(pdMS_TO_TICKS(1000));
+	}
 }
 
 

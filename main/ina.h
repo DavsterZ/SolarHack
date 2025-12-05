@@ -23,7 +23,11 @@ typedef enum {
 
 extern ina219_data_t g_ina219_data[INA219_DEVICE_MAX];
 
-// Inicia una instancia de INA219 con la direccion I2C dada
+
+void ina_task(void *pvParameters);
+
+
+/* Inicia una instancia de INA219 con la direccion I2C dada
 esp_err_t ina219_init(ina219_t *dev, uint8_t i2c_addr, float shunt_ohms, float max_current_A);
 
 // Lee el voltaje de BUS en voltios (VIN- respecto GND)
@@ -33,5 +37,5 @@ esp_err_t ina219_read_bus_voltage(ina219_t *dev ,float *volts);
 esp_err_t ina219_read_current(ina219_t *dev, float *current_A);
 
 // Lee la potencia del registro POWER calibrado
-esp_err_t ina219_read_power(ina219_t *dev, float *power_W);
+esp_err_t ina219_read_power(ina219_t *dev, float *power_W);*/
 
