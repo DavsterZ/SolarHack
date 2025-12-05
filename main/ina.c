@@ -21,13 +21,9 @@ static const char *TAG = "INA219";
 #define INA_PANEL_IMAX_A strtof(CONFIG_MAX_CURRENT_PANEL_A, NULL)
 #define INA_BAT_IMAX_A   strtof(CONFIG_MAX_CURRENT_BAT_A, NULL)
 
-// Pines y configuracion de I2C
-#define I2C_MASTER_SCL CONFIG_I2C_SCL_PIN
-#define I2C_MASTER_SDA CONFIG_I2C_SDA_PIN
+// Configuracion de I2C
 #define I2C_MASTER_NUM I2C_NUM_0
-#define I2C_MASTER_FREQ_HZ CONFIG_I2C_FREQ_HZ
-#define I2C_MASTER_TX_BUF_DISABLE 0  // Como el ESP32 es el maestro no necesita tener buffer de transmision ni buffer de recibir datos
-#define I2C_MASTER_RX_BUF_DISABLE 0  // Por eso se ponen a 0, si hubiera otro controlador mandandole datos se pondria el tamano del buffer
+
 
 // Direcciones de registros
 #define INA219_REG_CONFIG      0x00
@@ -38,41 +34,6 @@ static const char *TAG = "INA219";
 #define INA219_REG_CALIB       0x05
 
 ina219_data_t g_ina219_data[INA219_DEVICE_MAX];
-
-// ------------- I2C ---------------
-static esp_err_t i2c_master_init(void)
-{
-	static bool initialized = false;
-	if (initialized) return ESP_OK;
-
-	i2c_config_t config = 
-	{
-		.mode = I2C_MODE_MASTER,
-		.sda_io_num = I2C_MASTER_SDA,
-		// Cuando nadie esta hablando por el cable I2C, lo mantiene en 1 (3V3) para que el ESP32 no vea basura
-		.sda_pullup_en = GPIO_PULLUP_ENABLE,
-		.scl_io_num = I2C_MASTER_SCL,
-		.scl_pullup_en = GPIO_PULLUP_ENABLE,
-		.master.clk_speed = I2C_MASTER_FREQ_HZ,
-	};
-
-	esp_err_t err = i2c_param_config(I2C_MASTER_NUM, &config);
-	if (err != ESP_OK)
-		return err;
-	
-	// Inicia el i2c en modo master
-	err = i2c_driver_install(I2C_MASTER_NUM,
-							  config.mode,
-							  I2C_MASTER_RX_BUF_DISABLE,
-							  I2C_MASTER_TX_BUF_DISABLE,
- 							  0);	
-
-	if (err == ESP_OK)
-		initialized = true;
-
-	return err;
-}
-
 
 // Escribir un valor en un registro
 static esp_err_t ina219_write_reg(ina219_t *dev ,uint8_t reg, uint16_t value)
@@ -119,18 +80,11 @@ static esp_err_t ina219_read_reg(ina219_t *dev ,uint8_t reg, uint16_t *value)
 static esp_err_t ina219_init(ina219_t *dev, uint8_t i2c_addr, float shunt_ohms, float max_current_A)
 {
 	if (!dev) return ESP_ERR_INVALID_ARG;
-
-	esp_err_t err = i2c_master_init();
-	if (err != ESP_OK) {
-		ESP_LOGI(TAG, "Error inicializando I2C: %s", esp_err_to_name(err));
-		return err;
-	}
-
 	dev->i2c_addr = i2c_addr;
 
 	// Resetea la configuracion de INA219 por si acaso de otros programas se ha quedado basura en el registro de configuracion
 	// Este bit (15 a 1).
-	err = ina219_write_reg(dev, INA219_REG_CONFIG, 0x8000);
+	esp_err_t err = ina219_write_reg(dev, INA219_REG_CONFIG, 0x8000);
 	if (err != ESP_OK) {
 		ESP_LOGI(TAG, "Error haciendo reset al INA219(0x%02X): %s",dev->i2c_addr, esp_err_to_name(err));
 		return err;
