@@ -8,20 +8,21 @@
 #include "freertos/FreeRTOS.h"
 
 #include <stdbool.h>
+#include <stdlib.h>
 
 static const char *TAG = "INA219";
 
 #define INA_PANEL_ADDR   0x40
 #define INA_BAT_ADDR     0x41
-#define INA_RSHUNT_OHMS  0.1f	// Cambiar
-#define INA_PANEL_IMAX_A 1.0f
-#define INA_BAT_IMAX_A   1.0f
+#define INA_RSHUNT_OHMS  strtof(CONFIG_SHUNT_RESISTOR_OHM, NULL)
+#define INA_PANEL_IMAX_A strtof(CONFIG_MAX_CURRENT_PANEL_A, NULL)
+#define INA_BAT_IMAX_A   strtof(CONFIG_MAX_CURRENT_BAT_A, NULL)
 
 // Pines y configuracion de I2C
-#define I2C_MASTER_SCL 22
-#define I2C_MASTER_SDA 21
+#define I2C_MASTER_SCL CONFIG_I2C_SCL_PIN
+#define I2C_MASTER_SDA CONFIG_I2C_SDA_PIN
 #define I2C_MASTER_NUM I2C_NUM_0
-#define I2C_MASTER_FREQ_HZ 100000
+#define I2C_MASTER_FREQ_HZ CONFIG_I2C_FREQ_HZ
 #define I2C_MASTER_TX_BUF_DISABLE 0  // Como el ESP32 es el maestro no necesita tener buffer de transmision ni buffer de recibir datos
 #define I2C_MASTER_RX_BUF_DISABLE 0  // Por eso se ponen a 0, si hubiera otro controlador mandandole datos se pondria el tamano del buffer
 

@@ -9,7 +9,7 @@
 #include "freertos/task.h"
 
 
-#define BAT_CAPACITY_AH  2.6f
+#define BAT_CAPACITY_AH  strtof(CONFIG_BAT_CAPACITY_AH, NULL)
 #define LOOP_PERIOD_S    1.0f
 
 

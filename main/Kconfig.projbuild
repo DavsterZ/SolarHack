@@ -1,14 +1,37 @@
-# put here your custom config value
-menu "Example Configuration"
-config ESP_WIFI_SSID
-    string "WiFi SSID"
-    default "myssid"
-    help
-	SSID (network name) for the example to connect to.
+menu "Configuración del Sistema"
 
-config ESP_WIFI_PASSWORD
-    string "WiFi Password"
-    default "mypassword"
-    help
-	WiFi password (WPA or WPA2) for the example to use.
+    menu "Batería y Energía"
+        config BAT_CAPACITY_AH
+            string "Capacidad de la Batería (Ah)"
+            default "2.6"
+            help
+                Capacidad nominal de la batería en Amperios-hora.
+
+        config SHUNT_RESISTOR_OHM
+            string "Resistencia Shunt INA219 (Ohms)"
+            default "0.1"
+            help
+                Valor de la resistencia shunt (Rshunt).
+
+        config MAX_CURRENT_PANEL_A
+            string "Corriente Máxima INA219 (P)"
+            default "1.0"
+            
+        config MAX_CURRENT_BAT_A
+            string "Corriente Máxima INA219 (B)"
+            default "1.0"
+    endmenu
+
+    menu "Pines I2C"
+        config I2C_SDA_PIN
+            int "Pin SDA"
+            default 21
+        config I2C_SCL_PIN
+            int "Pin SCL"
+            default 22
+        config I2C_FREQ_HZ
+            int "Frecuencia I2C (Hz)"
+            default 100000
+    endmenu
+
 endmenu
