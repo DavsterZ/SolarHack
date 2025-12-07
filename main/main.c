@@ -6,6 +6,9 @@
 #include "adc.h"
 #include "protect.h"
 #include "battery.h"
+#include "nvs_managment.h"
+#include "wifi_managment.h"
+#include "web_managment.h"
 
 #include "esp_log.h"
 #include "esp_err.h"
@@ -73,73 +76,117 @@ void app_main(void)
         return;
     }
 
-	i2c_master_init();
+	init_nvs();
+
+	wifi_init_system();
 	
-	xTaskCreate(ina_task, "ina_task", 4096, NULL, 5, NULL);
-    xTaskCreate(adc_task, "adc_task", 4096, NULL, 5, NULL);
+	char ssid[33] = {0};
+    char pass[65] = {0};
+    bool has_creds = load_wifi_credentials(ssid, sizeof(ssid), pass, sizeof(pass));
 
-	vTaskDelay(pdMS_TO_TICKS(1500));
+	if (!has_creds) 
+	{
+        // --- MODO CONFIGURACIÓN (AP) ---
+        ESP_LOGI(TAG, "No hay credenciales. Iniciando Modo AP...");
+        wifi_start_ap();
+        
+        // El bucle while(1) solo sirve para mantener el main vivo si fuera necesario, 
+        // pero el webserver funciona por callbacks.
+        while(1) { 
+			vTaskDelay(pdMS_TO_TICKS(1000)); 
+		}
+    } else 
+	{
+		ESP_LOGI(TAG, "Credenciales encontradas. Conectando a %s...", ssid);
+		
+		i2c_master_init();
 
-	float soc = 50.0f;
-	float v_bat_init = 0.0f;
+		wifi_start_sta(ssid, pass);
 
-	if(xSemaphoreTake(g_data_mutex, portMAX_DELAY)) {
-		v_bat_init = g_ina219_data[INA219_DEVICE_BATTERY].bus_voltage_V;
-		xSemaphoreGive(g_data_mutex);
-	}
+		// Esperar a tener IP antes de lanzar tareas
+        // Esperamos bits CONNECTED o FAIL
+        EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
+                                               WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
+                                               pdFALSE,
+                                               pdFALSE,
+                                               portMAX_DELAY);
 
-    if (v_bat_init > 1.0f) {
-        soc = battery_porcent_from_voltage(v_bat_init);
-        ESP_LOGI(TAG, "SoC inicial estimado: Vbat=%.3f V -> %.1f%%",
-                 v_bat_init, soc);
-    } else {
-        ESP_LOGW(TAG, "No se pudo leer Vbat inicial; usando SoC=50%%");
-    }
+		if (bits & WIFI_CONNECTED_BIT) {
+            ESP_LOGI(TAG, "WiFi Conectado. Iniciando Tareas de Sensores...");
+            
+            // Aquí lanzamos tus tareas
+            xTaskCreate(ina_task, "ina_task", 4096, NULL, 5, NULL);
+            xTaskCreate(adc_task, "adc_task", 4096, NULL, 5, NULL);
 
+			vTaskDelay(pdMS_TO_TICKS(1500));
 
-    while (1) {
-		float v_entrada=0, i_entrada=0, w_entrada=0;
-        float v_salida=0, i_salida=0, w_salida=0;
-        float ldr_r[LDR_COUNT] = {0};
-
-		if (xSemaphoreTake(g_data_mutex, pdMS_TO_TICKS(200))) {
-			v_entrada = g_ina219_data[INA219_DEVICE_PANEL].bus_voltage_V;
-	        i_entrada = g_ina219_data[INA219_DEVICE_PANEL].current_A;
-	        w_entrada = g_ina219_data[INA219_DEVICE_PANEL].power_W;
-	
-	        v_salida = g_ina219_data[INA219_DEVICE_BATTERY].bus_voltage_V;
-	        i_salida = g_ina219_data[INA219_DEVICE_BATTERY].current_A;
-	        w_salida = g_ina219_data[INA219_DEVICE_BATTERY].power_W;
+			float soc = 50.0f;
+			float v_bat_init = 0.0f;
+		
+			if(xSemaphoreTake(g_data_mutex, portMAX_DELAY)) {
+				v_bat_init = g_ina219_data[INA219_DEVICE_BATTERY].bus_voltage_V;
+				xSemaphoreGive(g_data_mutex);
+			}
+		
+		    if (v_bat_init > 1.0f) {
+		        soc = battery_porcent_from_voltage(v_bat_init);
+		        ESP_LOGI(TAG, "SoC inicial estimado: Vbat=%.3f V -> %.1f%%",
+		                 v_bat_init, soc);
+		    } else {
+		        ESP_LOGW(TAG, "No se pudo leer Vbat inicial; usando SoC=50%%");
+		    }
+            
+            // Loop principal (Monitorización, MQTT, etc)
+            while(1) {
+                float v_entrada=0, i_entrada=0, w_entrada=0;
+		        float v_salida=0, i_salida=0, w_salida=0;
+		        float ldr_r[LDR_COUNT] = {0};
+		
+				if (xSemaphoreTake(g_data_mutex, pdMS_TO_TICKS(200))) {
+					v_entrada = g_ina219_data[INA219_DEVICE_PANEL].bus_voltage_V;
+			        i_entrada = g_ina219_data[INA219_DEVICE_PANEL].current_A;
+			        w_entrada = g_ina219_data[INA219_DEVICE_PANEL].power_W;
 			
-			for(int k=0; k<LDR_COUNT; k++) ldr_r[k] = g_ldr_data[k].resistance_kohm;
+			        v_salida = g_ina219_data[INA219_DEVICE_BATTERY].bus_voltage_V;
+			        i_salida = g_ina219_data[INA219_DEVICE_BATTERY].current_A;
+			        w_salida = g_ina219_data[INA219_DEVICE_BATTERY].power_W;
+					
+					for(int k=0; k<LDR_COUNT; k++) ldr_r[k] = g_ldr_data[k].resistance_kohm;
+		
+		            xSemaphoreGive(g_data_mutex);
+				} else {
+		            ESP_LOGW(TAG, "No se pudo obtener Mutex para leer datos");
+		        }
+		    	
+		
+				// OJO: aquí asumimos que i_bat > 0 significa que la batería
+		        // se está DESCARGANDO. Si en tu montaje es al revés,
+		        // pon: i_bat = -i_bat;
+		        // para que el SoC suba cuando se cargue y baje cuando se descargue.
+				
+				soc = battery_soc_update(
+		            soc,
+		            v_salida,
+		            i_salida,
+		            LOOP_PERIOD_S,
+		            BAT_CAPACITY_AH
+		        );
+				
+				ESP_LOGI(TAG,
+		                 "IN:  V=%.3f V  I=%.3f A  P=%.3f W | OUT: V=%.3f V  I=%.3f A  P=%.3f W, SoC=%.1f%%",
+		                 v_entrada, i_entrada, w_entrada, v_salida, i_salida, w_salida, soc);
+		
+				ESP_LOGI(TAG, "LDRs: %.2f, %.2f, %.2f, %.2f kOhm", 
+		                 ldr_r[0], ldr_r[1], ldr_r[2], ldr_r[3]);
+			
+			
+                vTaskDelay(pdMS_TO_TICKS(5000));
+            }
 
-            xSemaphoreGive(g_data_mutex);
-		} else {
-            ESP_LOGW(TAG, "No se pudo obtener Mutex para leer datos");
+        } else if (bits & WIFI_FAIL_BIT) {
+            ESP_LOGE(TAG, "Fallo al conectar WiFi. ¿Credenciales mal? ¿Resetear NVS?");
+            // Aquí podrías decidir borrar NVS y reiniciar tras X fallos
+            // O arrancar las tareas en modo 'Offline'
         }
-    	
-
-		// OJO: aquí asumimos que i_bat > 0 significa que la batería
-        // se está DESCARGANDO. Si en tu montaje es al revés,
-        // pon: i_bat = -i_bat;
-        // para que el SoC suba cuando se cargue y baje cuando se descargue.
-		
-		soc = battery_soc_update(
-            soc,
-            v_salida,
-            i_salida,
-            LOOP_PERIOD_S,
-            BAT_CAPACITY_AH
-        );
-		
-		ESP_LOGI(TAG,
-                 "IN:  V=%.3f V  I=%.3f A  P=%.3f W | OUT: V=%.3f V  I=%.3f A  P=%.3f W, SoC=%.1f%%",
-                 v_entrada, i_entrada, w_entrada, v_salida, i_salida, w_salida, soc);
-
-		ESP_LOGI(TAG, "LDRs: %.2f, %.2f, %.2f, %.2f kOhm", 
-                 ldr_r[0], ldr_r[1], ldr_r[2], ldr_r[3]);
-	
-	
-		vTaskDelay(pdMS_TO_TICKS((int)(LOOP_PERIOD_S * 1000)));
-    }
+	}
 }
