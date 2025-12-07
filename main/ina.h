@@ -23,6 +23,7 @@ typedef enum {
 
 extern ina219_data_t g_ina219_data[INA219_DEVICE_MAX];
 
+extern float g_battery_soc;
 
 void ina_task(void *pvParameters);
 

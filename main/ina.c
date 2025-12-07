@@ -1,7 +1,9 @@
-#include "ina.h"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
+
 #include "protect.h"
+#include "ina.h"
+#include "battery.h"
 
 #include "driver/i2c.h"
 
@@ -33,7 +35,10 @@ static const char *TAG = "INA219";
 #define INA219_REG_CURRENT     0x04
 #define INA219_REG_CALIB       0x05
 
+#define BAT_CAPACITY_AH  strtof(CONFIG_BAT_CAPACITY_AH, NULL)
+
 ina219_data_t g_ina219_data[INA219_DEVICE_MAX];
+float g_battery_soc = 50.0f;
 
 // Escribir un valor en un registro
 static esp_err_t ina219_write_reg(ina219_t *dev ,uint8_t reg, uint16_t value)
@@ -64,7 +69,6 @@ static esp_err_t ina219_read_reg(ina219_t *dev ,uint8_t reg, uint16_t *value)
 		1,        // escribir 1 byte: dirección del registro
         buf, 
 		sizeof(buf),
-		//2,         // leer 2 bytes
         pdMS_TO_TICKS(100)
     );
 
@@ -91,7 +95,7 @@ static esp_err_t ina219_init(ina219_t *dev, uint8_t i2c_addr, float shunt_ohms, 
 	}
 	
 	// Haciendo un delay para darle tiempo a hacer el reset
-	vTaskDelay(pdMS_TO_TICKS(1));
+	vTaskDelay(pdMS_TO_TICKS(2));
 
 	// Current_LSB = Imax / 32767
 	float current_lsb = max_current_A / 32767.0f;
@@ -112,6 +116,23 @@ static esp_err_t ina219_init(ina219_t *dev, uint8_t i2c_addr, float shunt_ohms, 
 	
 	ESP_LOGI(TAG, "INA219(0x%02X) calibrado: Rshunt=%.3fΩ, Imax=%.2fA, I_LSB=%.6fA, CAL=0x%04X", dev->i2c_addr, shunt_ohms, max_current_A, current_lsb, calib);
 	return ESP_OK;
+}
+
+static esp_err_t ina219_read_all(ina219_t *dev, float *v, float *i, float *p)
+{
+    uint16_t raw_v, raw_i, raw_p;
+    
+    // Lectura en bloque (o secuencial robusta)
+    if (ina219_read_reg(dev, INA219_REG_BUS_VOLT, &raw_v) != ESP_OK) return ESP_FAIL;
+    if (ina219_read_reg(dev, INA219_REG_CURRENT, &raw_i) != ESP_OK) return ESP_FAIL;
+    if (ina219_read_reg(dev, INA219_REG_POWER, &raw_p) != ESP_OK) return ESP_FAIL;
+
+    // Conversiones
+    *v = (float)(raw_v >> 3) * 0.004f;
+    *i = (float)((int16_t)raw_i) * dev->current_lsb;
+    *p = (float)raw_p * dev->power_lbs;
+
+    return ESP_OK;
 }
 
 static esp_err_t ina219_read_bus_voltage(ina219_t *dev, float *volts)
@@ -170,35 +191,74 @@ void ina_task(void *pvParameters)
 	ina219_t dev_panel;
 	ina219_t dev_battery;
 
+	// Contadores de fallos
+    int fail_count[INA219_DEVICE_MAX] = {0, 0};
+    const int MAX_FAILURES = 10;
+
 	ESP_ERROR_CHECK(ina219_init(&dev_panel, INA_PANEL_ADDR, INA_RSHUNT_OHMS, INA_PANEL_IMAX_A));
 	ESP_ERROR_CHECK(ina219_init(&dev_battery, INA_BAT_ADDR, INA_RSHUNT_OHMS, INA_BAT_IMAX_A));
 
 	ina219_t* devices[INA219_DEVICE_MAX] = { &dev_panel, &dev_battery };
 
+	// Estimación inicial del SoC
+    float v_start = 0, i_dum, p_dum;
+    if(ina219_read_all(&dev_battery, &v_start, &i_dum, &p_dum) == ESP_OK && v_start > 1.0f) {
+        g_battery_soc = battery_porcent_from_voltage(v_start);
+        ESP_LOGI(TAG, "SoC inicial (por voltaje): %.1f%%", g_battery_soc);
+    }
+
 	while(1) {
+		// Variables locales para almacenar lecturas temporalmente
+        ina219_data_t local_data[INA219_DEVICE_MAX];
+        bool read_ok[INA219_DEVICE_MAX] = {false, false};
+
 		for (int i = 0; i < INA219_DEVICE_MAX; i++) {
-            float v = 0, current = 0, p = 0;
+			if (fail_count[i] > MAX_FAILURES) {
+                // Podríamos intentar reinicializar aquí
+                // ina219_init(devices[i], ...);
+                fail_count[i] = 0; // Reset counter para reintentar
+                ESP_LOGW(TAG, "Reintentando sensor INA %d tras fallos...", i);
+			}
 
             // Leer sensores
-            // Podrías añadir chequeo de errores si quieres robustez
-            if(ina219_read_bus_voltage(devices[i], &v) == ESP_OK &&
-               ina219_read_current(devices[i], &current) == ESP_OK &&
-               ina219_read_power(devices[i], &p) == ESP_OK) 
-			{
-				if(g_data_mutex != NULL) {
-					if(xSemaphoreTake(g_data_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-						// Actualizar la estructura global
-			            g_ina219_data[i].bus_voltage_V = v;
-			            g_ina219_data[i].current_A = current;
-			            g_ina219_data[i].power_W = p;
-						
-						xSemaphoreGive(g_data_mutex);
-					}
-				}
-			} else {
-				ESP_LOGW(TAG, "Error leyendo sensor INA %d", i);
-			} 
+            if(ina219_read_all(devices[i], 
+                               &local_data[i].bus_voltage_V, 
+                               &local_data[i].current_A, 
+                               &local_data[i].power_W) == ESP_OK) 
+            {
+                read_ok[i] = true;
+                fail_count[i] = 0;
+            } else {
+                read_ok[i] = false;
+                fail_count[i]++;
+                // Solo loguear error de vez en cuando para no saturar
+                if(fail_count[i] == 1) ESP_LOGW(TAG, "Fallo lectura INA %d", i);
+            }
         }
+
+		// Robustez 2.C: Actualización del SoC aquí (cada 1s preciso)
+        if (read_ok[INA219_DEVICE_BATTERY]) {
+            // Asumiendo que esta tarea corre cada 1000ms
+            g_battery_soc = battery_soc_update(
+                g_battery_soc, 
+                local_data[INA219_DEVICE_BATTERY].bus_voltage_V, 
+                local_data[INA219_DEVICE_BATTERY].current_A, 
+                1.0f, // dt = 1 segundo exacto
+                BAT_CAPACITY_AH
+            );
+        }
+
+		// Tomar Mutex UNA sola vez para actualizar todo
+		if(g_data_mutex != NULL) {
+			if(xSemaphoreTake(g_data_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+				for(int i=0; i<INA219_DEVICE_MAX; i++) {
+                    if(read_ok[i]) {
+                        g_ina219_data[i] = local_data[i];
+                    }
+                }
+				xSemaphoreGive(g_data_mutex);
+			}
+		}
 
 		vTaskDelay(pdMS_TO_TICKS(1000));
 	}
