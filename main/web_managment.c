@@ -2,7 +2,6 @@
 #include "esp_err.h"
 #include <esp_log.h>
 #include <stdlib.h>
-#include "esp_heap_caps.h"
 
 #include "web_managment.h"
 #include "nvs_managment.h"
