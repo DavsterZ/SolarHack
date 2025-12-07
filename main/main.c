@@ -18,7 +18,7 @@
 
 
 #define BAT_CAPACITY_AH  strtof(CONFIG_BAT_CAPACITY_AH, NULL)
-#define LOOP_PERIOD_S    1.0f
+#define LOOP_PERIOD_S    5.0f
 
 // Configuracion Pines I2C
 #define I2C_MASTER_NUM I2C_NUM_0
