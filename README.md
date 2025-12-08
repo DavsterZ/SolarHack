@@ -103,3 +103,9 @@ Navega a "Configuración del Sistema" y ajusta los siguientes valores según tu 
        * Token de Acceso: Pega aquí el token de tu dispositivo de ThingsBoard.
 
       * Tópico de Telemetría: Por defecto v1/devices/me/telemetry.
+## 4. Compilar y Flashear
+
+Conecta el ESP32 al puerto USB y ejecuta:
+```bash
+idf.py build flash monitor
+``` 
