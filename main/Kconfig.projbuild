@@ -102,5 +102,25 @@ menu "Configuración del Sistema"
             help
                 Periodo para mostrar logs generales y guardar datos en Main.
     endmenu
+    
+    menu "Configuración MQTT"
+        config BROKER_URL_MQTT
+            string "URL del Broker MQTT"
+            default "mqtt://demo.thingsboard.io"
+            help
+                URL completa del broker (ej: mqtt://192.168.1.100 o mqtt://broker.hivemq.com)
+
+        config MQTT_TOKEN
+            string "Token de Acceso / Username"
+            default "TU_ACCESS_TOKEN"
+            help
+                Usuario o Token para autenticación (común en ThingsBoard).
+                
+        config MQTT_TOPIC_TELEMETRY
+            string "Tópico de Telemetría"
+            default "v1/devices/me/telemetry"
+            help
+                Tópico donde se publicará el JSON.
+    endmenu
 
 endmenu

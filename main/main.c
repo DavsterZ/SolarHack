@@ -8,7 +8,7 @@
 #include "battery.h"
 #include "nvs_managment.h"
 #include "wifi_managment.h"
-#include "web_managment.h"
+#include "mqtt_protocol.h"
 
 #include "esp_log.h"
 #include "esp_err.h"
@@ -117,6 +117,8 @@ void app_main(void)
             // Aquí lanzamos tus tareas
             xTaskCreate(ina_task, "ina_task", 4096, NULL, 5, NULL);
             xTaskCreate(adc_task, "adc_task", 4096, NULL, 5, NULL);
+			
+			mqtt_app_start();			
 
 			vTaskDelay(pdMS_TO_TICKS(1500));
 
@@ -138,49 +140,46 @@ void app_main(void)
             
             // Loop principal (Monitorización, MQTT, etc)
             while(1) {
-                float v_entrada=0, i_entrada=0, w_entrada=0;
-		        float v_salida=0, i_salida=0, w_salida=0;
-		        float ldr_r[LDR_COUNT] = {0};
+                ina219_data_t d_panel = {0};
+                ina219_data_t d_bat = {0};
+                ldr_data_t d_ldrs[LDR_COUNT]; // Array local
+                bool data_ok = false;
 		
 				if (xSemaphoreTake(g_data_mutex, pdMS_TO_TICKS(200))) {
-					v_entrada = g_ina219_data[INA219_DEVICE_PANEL].bus_voltage_V;
-			        i_entrada = g_ina219_data[INA219_DEVICE_PANEL].current_A;
-			        w_entrada = g_ina219_data[INA219_DEVICE_PANEL].power_W;
-			
-			        v_salida = g_ina219_data[INA219_DEVICE_BATTERY].bus_voltage_V;
-			        i_salida = g_ina219_data[INA219_DEVICE_BATTERY].current_A;
-			        w_salida = g_ina219_data[INA219_DEVICE_BATTERY].power_W;
-					
-					for(int k=0; k<LDR_COUNT; k++) ldr_r[k] = g_ldr_data[k].resistance_kohm;
-		
+					d_panel = g_ina219_data[INA219_DEVICE_PANEL];
+                    d_bat   = g_ina219_data[INA219_DEVICE_BATTERY];
+                    
+                    // Copia eficiente del array de LDRs
+                    memcpy(d_ldrs, g_ldr_data, sizeof(ldr_data_t) * LDR_COUNT);
+                    
+                    data_ok = true;
 		            xSemaphoreGive(g_data_mutex);
 				} else {
 		            ESP_LOGW(TAG, "No se pudo obtener Mutex para leer datos");
 		        }
-		    	
-		
-				// OJO: aquí asumimos que i_bat > 0 significa que la batería
-		        // se está DESCARGANDO. Si en tu montaje es al revés,
-		        // pon: i_bat = -i_bat;
-		        // para que el SoC suba cuando se cargue y baje cuando se descargue.
-				
-				soc = battery_soc_update(
-		            soc,
-		            v_salida,
-		            i_salida,
-		            LOOP_PERIOD_S,
-		            BAT_CAPACITY_AH
-		        );
-				
-				ESP_LOGI(TAG,
-		                 "IN:  V=%.3f V  I=%.3f A  P=%.3f W | OUT: V=%.3f V  I=%.3f A  P=%.3f W, SoC=%.1f%%",
-		                 v_entrada, i_entrada, w_entrada, v_salida, i_salida, w_salida, soc);
-		
-				ESP_LOGI(TAG, "LDRs: %.2f, %.2f, %.2f, %.2f kOhm", 
-		                 ldr_r[0], ldr_r[1], ldr_r[2], ldr_r[3]);
-			
-			
-                vTaskDelay(pdMS_TO_TICKS(LOOP_PERIOD_S * 1000));
+
+				if (data_ok) {
+                    // Actualización del SoC (Coulomb Counting + Voltaje)
+                    soc = battery_soc_update(
+                        soc,
+                        d_bat.bus_voltage_V,
+                        d_bat.current_A,
+                        LOOP_PERIOD_S,
+                        BAT_CAPACITY_AH
+                    );
+                    
+                    // Loguear en consola
+                    ESP_LOGI(TAG,
+                             "IN: %.2fV/%.2fA | OUT: %.2fV/%.2fA | SoC: %.1f%%",
+                             d_panel.bus_voltage_V, d_panel.current_A, 
+                             d_bat.bus_voltage_V, d_bat.current_A, soc);
+            
+                    // Enviar Telemetría MQTT
+                    // Pasamos las direcciones de las estructuras locales
+                    mqtt_send_telemetry(&d_panel, &d_bat, soc, d_ldrs);
+                }
+
+		    	vTaskDelay(pdMS_TO_TICKS(LOOP_PERIOD_S * 1000));
             }
 
         } else if (bits & WIFI_FAIL_BIT) {
