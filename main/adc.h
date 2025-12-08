@@ -2,8 +2,8 @@
 
 #include <stdint.h>
 
-#define LDR_MIN_OHM         4000
-#define LDR_MAX_OHM         1000000
+#define LDR_MIN_OHM         CONFIG_LDR_MIN_OHM
+#define LDR_MAX_OHM         CONFIG_LDR_MAX_OHM
 
 #define LDR_COUNT 			4
 

@@ -6,9 +6,9 @@
 #include <stdint.h>
 
 // Configuración por defecto del AP del ESP32
-#define ESP_WIFI_AP_SSID        "ESP32_CONFIG"
-#define ESP_WIFI_AP_PASS        ""
-#define MAX_CONNECTIONS_AP      4
+#define ESP_WIFI_AP_SSID        CONFIG_WIFI_AP_SSID
+#define ESP_WIFI_AP_PASS        CONFIG_WIFI_AP_PASS
+#define MAX_CONNECTIONS_AP      CONFIG_WIFI_AP_MAX_CONN
 #define MAX_APS                 20
 
 

@@ -1,5 +1,24 @@
 menu "Configuración del Sistema"
 
+	menu "WiFi (Modo AP)"
+        config WIFI_AP_SSID
+            string "SSID del AP de Configuración"
+            default "ESP32_CONFIG"
+            help
+                Nombre de la red WiFi que generará el ESP32 si no tiene credenciales.
+
+        config WIFI_AP_PASS
+            string "Contraseña del AP (Dejar vacío para abierto)"
+            default ""
+            help
+                Contraseña WPA2 para el AP. Si se deja vacío, la red será abierta.
+
+        config WIFI_AP_MAX_CONN
+            int "Máximo de clientes AP"
+            default 4
+            range 1 10
+    endmenu
+
     menu "Batería y Energía"
         config BAT_CAPACITY_AH
             string "Capacidad de la Batería (Ah)"
@@ -20,18 +39,68 @@ menu "Configuración del Sistema"
         config MAX_CURRENT_BAT_A
             string "Corriente Máxima INA219 (B)"
             default "1.0"
+            
+        config INA_ADDR_PANEL
+            hex "Dirección I2C Sensor Panel"
+            default 0x40
+            range 0x40 0x4F
+            help
+                Dirección I2C física del sensor INA219 conectado al Panel.
+
+        config INA_ADDR_BAT
+            hex "Dirección I2C Sensor Batería"
+            default 0x41
+            range 0x40 0x4F
+            help
+                Dirección I2C física del sensor INA219 conectado a la Batería.
+    endmenu
+    
+    menu "Sensores de Luz (ADC/LDR)"
+        config LDR_MIN_OHM
+            int "Resistencia Mínima LDR (Ohms)"
+            default 4000
+            help
+                Valor de resistencia en máxima luminosidad (luz directa).
+
+        config LDR_MAX_OHM
+            int "Resistencia Máxima LDR (Ohms)"
+            default 1000000
+            help
+                Valor de resistencia en oscuridad total.
     endmenu
 
-    menu "Pines I2C"
+    menu "Hardware I2C"
         config I2C_SDA_PIN
             int "Pin SDA"
             default 21
+            
         config I2C_SCL_PIN
             int "Pin SCL"
             default 22
+            
         config I2C_FREQ_HZ
             int "Frecuencia I2C (Hz)"
             default 100000
+    endmenu
+    
+    menu "Tiempos y Tareas (Periodos)"
+        config TASK_INA_PERIOD_MS
+            int "Periodo Tarea INA (ms)"
+            default 1000
+            help
+                Cada cuánto tiempo se leen los sensores de corriente.
+
+        config TASK_ADC_PERIOD_MS
+            int "Periodo Tarea ADC (ms)"
+            default 3000
+            help
+                Cada cuánto tiempo se leen los LDRs.
+
+        config MAIN_LOOP_PERIOD_S
+            int "Periodo Main Loop (s)"
+            default 5
+            help
+                Periodo para mostrar logs generales y guardar datos en Main.
     endmenu
 
 endmenu

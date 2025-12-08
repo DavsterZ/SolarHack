@@ -94,7 +94,7 @@ void adc_task(void *pvParameters) {
                      g_ldr_data[i].voltage_mv,
                      g_ldr_data[i].resistance_kohm);
 		}
-		vTaskDelay(pdMS_TO_TICKS(3000));
+		vTaskDelay(pdMS_TO_TICKS(CONFIG_TASK_ADC_PERIOD_MS));
 	}
 }
 

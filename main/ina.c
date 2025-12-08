@@ -17,8 +17,8 @@
 
 static const char *TAG = "INA219";
 
-#define INA_PANEL_ADDR   0x40
-#define INA_BAT_ADDR     0x41
+#define INA_PANEL_ADDR   CONFIG_INA_ADDR_PANEL
+#define INA_BAT_ADDR     CONFIG_INA_ADDR_BAT
 #define INA_RSHUNT_OHMS  strtof(CONFIG_SHUNT_RESISTOR_OHM, NULL)
 #define INA_PANEL_IMAX_A strtof(CONFIG_MAX_CURRENT_PANEL_A, NULL)
 #define INA_BAT_IMAX_A   strtof(CONFIG_MAX_CURRENT_BAT_A, NULL)
@@ -260,7 +260,7 @@ void ina_task(void *pvParameters)
 			}
 		}
 
-		vTaskDelay(pdMS_TO_TICKS(1000));
+		vTaskDelay(pdMS_TO_TICKS(CONFIG_TASK_INA_PERIOD_MS));
 	}
 }
 

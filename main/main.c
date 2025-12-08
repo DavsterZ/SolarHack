@@ -18,7 +18,7 @@
 
 
 #define BAT_CAPACITY_AH  strtof(CONFIG_BAT_CAPACITY_AH, NULL)
-#define LOOP_PERIOD_S    5.0f
+#define LOOP_PERIOD_S    ((float)CONFIG_MAIN_LOOP_PERIOD_S)
 
 // Configuracion Pines I2C
 #define I2C_MASTER_NUM I2C_NUM_0
@@ -180,7 +180,7 @@ void app_main(void)
 		                 ldr_r[0], ldr_r[1], ldr_r[2], ldr_r[3]);
 			
 			
-                vTaskDelay(pdMS_TO_TICKS(5000));
+                vTaskDelay(pdMS_TO_TICKS(LOOP_PERIOD_S * 1000));
             }
 
         } else if (bits & WIFI_FAIL_BIT) {
