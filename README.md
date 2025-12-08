@@ -108,4 +108,31 @@ Navega a "Configuración del Sistema" y ajusta los siguientes valores según tu 
 Conecta el ESP32 al puerto USB y ejecuta:
 ```bash
 idf.py build flash monitor
-``` 
+```
+
+🚀 Guía de Uso
+Primer Arranque (Modo Aprovisionamiento)
+
+1. Al encender el dispositivo por primera vez (o tras borrar la flash), no encontrará credenciales WiFi guardadas.
+
+2. El sistema levantará automáticamente un Punto de Acceso (AP).
+
+3. Busca en tu ordenador o móvil la red WiFi llamada ESP32_CONFIG (o el nombre que configuraste) y conéctate.
+
+4. Debería abrirse automáticamente una ventana de inicio de sesión (Portal Cautivo). Si no ocurre, abre un navegador y ve a http://192.168.4.1.
+
+5. Verás una lista de las redes WiFi detectadas. Selecciona tu red doméstica.
+
+6. Introduce la contraseña y pulsa el botón Connect & Save.
+
+7. El ESP32 guardará las credenciales en la memoria no volátil (NVS), se reiniciará automáticamente y se conectará a internet.
+
+Operación Normal
+
+Una vez configurado y conectado a la red WiFi, el dispositivo entra en su ciclo de trabajo normal:
+
+    Monitorización: Lee los sensores de corriente cada 1 segundo y los niveles de luz cada 3 segundos.
+
+    Cálculo: Actualiza el algoritmo de SoC de la batería.
+
+    Transmisión: Cada 5 segundos, envía un paquete JSON al broker MQTT configurado.
