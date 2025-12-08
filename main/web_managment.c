@@ -119,11 +119,15 @@ esp_err_t wifi_post_handler(httpd_req_t *req) {
     if (httpd_query_key_value(buf, "ssid", val_ssid, sizeof(val_ssid)) != ESP_OK ||
     	httpd_query_key_value(buf, "pass", val_pass, sizeof(val_pass)) != ESP_OK) 
     {
-			
+		ESP_LOGW(TAG_WEB, "Faltan parámetros ssid o pass en el POST");
+        free(buf);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing SSID or Password");
+        return ESP_FAIL;
 	}
 
-    url_decode(ssid, ssid);
-    url_decode(pass, pass);
+    url_decode(val_ssid, ssid);
+    url_decode(val_pass, pass);
+    
     free(buf);
 
     if (strlen(ssid) == 0) {
