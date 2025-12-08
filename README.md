@@ -42,22 +42,39 @@ El código sigue la estructura estándar de componentes de ESP-IDF:
 Plaintext
 
 ├── main/
-│   ├── main.c              # Punto de entrada, orquestación de tareas RTOS
+
+│   ├── main.c   # Punto de entrada, orquestación de tareas RTOS
+
 │   ├── Kconfig.projbuild   # Opciones de configuración del menú (menuconfig)
+
 │   ├── protect.h           # Definición de Mutex global
+
 │   │
+
 │   ├── modules/
+
 │   │   ├── adc.c/.h            # Driver para lectura de LDRs y conversión a Ohms
+
 │   │   ├── ina.c/.h            # Driver para sensores INA219 (I2C)
+
 │   │   ├── battery.c/.h        # Algoritmo de cálculo de SoC
+
 │   │   ├── mqtt_protocol.c/.h  # Cliente MQTT y serialización JSON
+
 │   │   ├── nvs_managment.c/.h  # Gestión de almacenamiento no volátil (Flash)
+
 │   │   ├── wifi_managment.c/.h # Máquina de estados WiFi (STA/AP)
+
 │   │   └── web_managment.c/.h  # Servidor Web y API para configuración
+
 │   │
+
 │   └── CMakeLists.txt
+
 ├── CMakeLists.txt
+
 └── README.md
+
 
 ⚙️ Configuración e Instalación
 1. Requisitos Previos
