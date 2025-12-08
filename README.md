@@ -110,8 +110,9 @@ Conecta el ESP32 al puerto USB y ejecuta:
 idf.py build flash monitor
 ```
 
-🚀 Guía de Uso
-Primer Arranque (Modo Aprovisionamiento)
+## 🚀 Guía de Uso
+
+**Primer Arranque (Modo Aprovisionamiento)**
 
 1. Al encender el dispositivo por primera vez (o tras borrar la flash), no encontrará credenciales WiFi guardadas.
 
@@ -127,12 +128,12 @@ Primer Arranque (Modo Aprovisionamiento)
 
 7. El ESP32 guardará las credenciales en la memoria no volátil (NVS), se reiniciará automáticamente y se conectará a internet.
 
-Operación Normal
+**Operación Normal**
 
 Una vez configurado y conectado a la red WiFi, el dispositivo entra en su ciclo de trabajo normal:
 
-    Monitorización: Lee los sensores de corriente cada 1 segundo y los niveles de luz cada 3 segundos.
+1. Monitorización: Lee los sensores de corriente cada 1 segundo y los niveles de luz cada 3 segundos.
 
-    Cálculo: Actualiza el algoritmo de SoC de la batería.
+2. Cálculo: Actualiza el algoritmo de SoC de la batería.
 
-    Transmisión: Cada 5 segundos, envía un paquete JSON al broker MQTT configurado.
+3. Transmisión: Cada 5 segundos, envía un paquete JSON al broker MQTT configurado.
