@@ -63,3 +63,16 @@ El código sigue la estructura estándar de componentes de **ESP-IDF**:
 │   └── CMakeLists.txt
 ├── CMakeLists.txt
 └── README.md
+```
+
+## ⚙️ Configuración e Instalación
+
+### 1. Requisitos Previos
+* ESP-IDF (v5.0 o superior recomendado).
+* Toolchain para ESP32 configurado.
+
+### 2. Clonar y Configurar
+```bash
+git clone <url-del-repo>
+cd <nombre-del-repo>
+```
