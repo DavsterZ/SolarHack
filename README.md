@@ -76,3 +76,30 @@ El código sigue la estructura estándar de componentes de **ESP-IDF**:
 git clone <url-del-repo>
 cd <nombre-del-repo>
 ```
+
+## 3. Configuración del Firmware (Menuconfig)
+
+Es crucial configurar los parámetros antes de compilar. Ejecuta:
+Bash
+```bash
+idf.py menuconfig
+```
+Navega a "Configuración del Sistema" y ajusta los siguientes valores según tu hardware:
+
+   * **WiFi (Modo AP)**: * SSID del AP: Define el nombre de la red que generará el ESP32 si no tiene configuración (Default: ESP32_CONFIG).
+
+   * **Batería y Energía**:
+
+      * Capacidad de la Batería (Ah): Ajusta este valor a la capacidad real de tu batería (ej. 2.6 para una celda 18650 típica).
+
+       * Resistencia Shunt: Generalmente 0.1 Ohm para módulos INA219 estándar.
+
+       * Corriente Máxima: Ajusta los rangos máximos esperados para el panel y la batería.
+
+   * **Configuración MQTT**:
+
+       * URL del Broker: Ej. mqtt://demo.thingsboard.io (o la IP de tu servidor).
+
+       * Token de Acceso: Pega aquí el token de tu dispositivo de ThingsBoard.
+
+      * Tópico de Telemetría: Por defecto v1/devices/me/telemetry.
