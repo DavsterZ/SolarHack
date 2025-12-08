@@ -67,17 +67,17 @@ El código sigue la estructura estándar de componentes de **ESP-IDF**:
 
 ## ⚙️ Configuración e Instalación
 
-### 1. Requisitos Previos
+#### 1. Requisitos Previos
 * ESP-IDF (v5.0 o superior recomendado).
 * Toolchain para ESP32 configurado.
 
-### 2. Clonar y Configurar
+#### 2. Clonar y Configurar
 ```bash
 git clone <url-del-repo>
 cd <nombre-del-repo>
 ```
 
-## 3. Configuración del Firmware (Menuconfig)
+#### 3. Configuración del Firmware (Menuconfig)
 
 Es crucial configurar los parámetros antes de compilar. Ejecuta:
 Bash
@@ -103,7 +103,7 @@ Navega a "Configuración del Sistema" y ajusta los siguientes valores según tu 
        * Token de Acceso: Pega aquí el token de tu dispositivo de ThingsBoard.
 
       * Tópico de Telemetría: Por defecto v1/devices/me/telemetry.
-## 4. Compilar y Flashear
+#### 4. Compilar y Flashear
 
 Conecta el ESP32 al puerto USB y ejecuta:
 ```bash
