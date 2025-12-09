@@ -2,6 +2,10 @@
 #include "esp_err.h"
 #include <esp_log.h>
 #include <stdlib.h>
+#include <sys/param.h>
+
+#include "esp_ota_ops.h"
+#include "esp_partition.h"
 
 #include "web_managment.h"
 #include "nvs_managment.h"
@@ -92,6 +96,7 @@ esp_err_t wifi_get_handler(httpd_req_t *req) {
     return ESP_OK;
 }
 
+
 esp_err_t wifi_post_handler(httpd_req_t *req) {
     char ssid[33] = {0}, pass[65] = {0};
     size_t sz = req->content_len;
@@ -146,9 +151,133 @@ esp_err_t wifi_post_handler(httpd_req_t *req) {
     return ESP_OK;
 }
 
+
+esp_err_t ota_get_handler(httpd_req_t *req) {
+    httpd_resp_set_type(req, "text/html");
+    const char *html = 
+        "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
+        "<meta name='viewport' content='width=device-width,initial-scale=1.0'>"
+        "<title>OTA Update</title>"
+        "<style>"
+        "body{font-family:Arial;margin:20px;background:#f0f0f0;text-align:center}"
+        ".c{max-width:400px;margin:0 auto;background:#fff;padding:30px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}"
+        "input[type='file']{margin-bottom:20px}"
+        "button{padding:10px 20px;background:#06c;color:white;border:none;border-radius:5px;cursor:pointer}"
+        "#bar{width:100%;background:#ddd;height:20px;margin-top:20px;display:none}"
+        "#prog{width:0%;height:100%;background:#4caf50}"
+        "</style></head><body>"
+        "<div class='c'><h2>System Update</h2>"
+        "<input type='file' id='f'><br>"
+        "<button onclick='up()'>Upload & Update</button>"
+        "<div id='bar'><div id='prog'></div></div>"
+        "<p id='st'></p></div>"
+        "<script>"
+        "function up(){"
+        "var f=document.getElementById('f').files[0];"
+        "if(!f){alert('Select file!');return;}"
+        "var xhr=new XMLHttpRequest();"
+        "xhr.open('POST','/ota',true);"
+        "xhr.upload.onprogress=function(e){"
+        "if(e.lengthComputable){"
+        "var p=(e.loaded/e.total)*100;"
+        "document.getElementById('bar').style.display='block';"
+        "document.getElementById('prog').style.width=p+'%';"
+        "document.getElementById('st').innerHTML='Uploading: '+Math.floor(p)+'%';"
+        "}"
+        "};"
+        "xhr.onload=function(){"
+        "if(xhr.status==200) document.getElementById('st').innerHTML='Success! Rebooting...';"
+        "else document.getElementById('st').innerHTML='Error: '+xhr.status;"
+        "};"
+        "xhr.send(f);"
+        "}"
+        "</script></body></html>";
+    
+    httpd_resp_send(req, html, HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
+
+
+esp_err_t ota_post_handler(httpd_req_t *req) {
+    char buf[1024];
+    esp_ota_handle_t update_handle = 0;
+    const esp_partition_t *update_partition = NULL;
+    esp_err_t err;
+
+    ESP_LOGI(TAG_WEB, "Iniciando OTA...");
+
+    // 1. Buscar la siguiente partición OTA libre
+    update_partition = esp_ota_get_next_update_partition(NULL);
+    if (update_partition == NULL) {
+        ESP_LOGE(TAG_WEB, "No hay partición OTA disponible");
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    // 2. Iniciar la escritura OTA
+    err = esp_ota_begin(update_partition, OTA_SIZE_UNKNOWN, &update_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG_WEB, "Error en esp_ota_begin");
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    // 3. Bucle de lectura del socket y escritura en flash
+    int received;
+    int remaining = req->content_len;
+
+    while (remaining > 0) {
+        // Leer datos del HTTP
+        if ((received = httpd_req_recv(req, buf, MIN(remaining, sizeof(buf)))) <= 0) {
+            if (received == HTTPD_SOCK_ERR_TIMEOUT) {
+                continue; // Reintentar si es timeout
+            }
+            ESP_LOGE(TAG_WEB, "Error recibiendo datos");
+            esp_ota_end(update_handle);
+            return ESP_FAIL;
+        }
+
+        // Escribir datos en la partición OTA
+        err = esp_ota_write(update_handle, buf, received);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG_WEB, "Error escribiendo en flash");
+            esp_ota_end(update_handle);
+            return ESP_FAIL;
+        }
+        remaining -= received;
+    }
+
+    // 4. Finalizar OTA
+    err = esp_ota_end(update_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG_WEB, "Error al finalizar OTA: %s", esp_err_to_name(err));
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    // 5. Configurar boot partition para arrancar la nueva versión
+    err = esp_ota_set_boot_partition(update_partition);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG_WEB, "Error al setear boot partition");
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG_WEB, "OTA Completada con éxito. Reiniciando en 2s...");
+    httpd_resp_sendstr(req, "OK");
+
+    // Reiniciar para aplicar cambios
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    esp_restart();
+
+    return ESP_OK;
+}
+
+
 httpd_handle_t start_webserver(void) {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;
+    config.max_uri_handlers = 8; // Asegurar espacio para handlers
     
     httpd_handle_t server = NULL;
     
@@ -157,6 +286,23 @@ httpd_handle_t start_webserver(void) {
         httpd_uri_t post_uri = {.uri = "/setwifi", .method = HTTP_POST, .handler = wifi_post_handler, .user_ctx = NULL};
         httpd_register_uri_handler(server, &get_uri);
         httpd_register_uri_handler(server, &post_uri);
+        
+        httpd_uri_t get_ota = {
+            .uri = "/ota",
+            .method = HTTP_GET,
+            .handler = ota_get_handler,
+            .user_ctx = NULL
+        };
+        httpd_register_uri_handler(server, &get_ota);
+
+        httpd_uri_t post_ota = {
+            .uri = "/ota",
+            .method = HTTP_POST,
+            .handler = ota_post_handler,
+            .user_ctx = NULL
+        };
+        httpd_register_uri_handler(server, &post_ota);
+        
         ESP_LOGI(TAG_WEB, "Server started");
     } else {
         ESP_LOGE(TAG_WEB, "Server start failed");
