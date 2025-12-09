@@ -9,6 +9,7 @@
 #include "nvs_managment.h"
 #include "wifi_managment.h"
 #include "mqtt_protocol.h"
+#include "solar_tracker.h"
 
 #include "esp_log.h"
 #include "esp_err.h"
@@ -119,6 +120,8 @@ void app_main(void)
             xTaskCreate(adc_task, "adc_task", 4096, NULL, 5, NULL);
 			
 			mqtt_app_start();			
+				
+			solar_tracker_start();			
 
 			vTaskDelay(pdMS_TO_TICKS(1500));
 
@@ -143,6 +146,7 @@ void app_main(void)
                 ina219_data_t d_panel = {0};
                 ina219_data_t d_bat = {0};
                 ldr_data_t d_ldrs[LDR_COUNT]; // Array local
+				tracker_data_t d_tracker = {0};
                 bool data_ok = false;
 		
 				if (xSemaphoreTake(g_data_mutex, pdMS_TO_TICKS(200))) {
@@ -151,6 +155,8 @@ void app_main(void)
                     
                     // Copia eficiente del array de LDRs
                     memcpy(d_ldrs, g_ldr_data, sizeof(ldr_data_t) * LDR_COUNT);
+
+					d_tracker = g_tracker_data;
                     
                     data_ok = true;
 		            xSemaphoreGive(g_data_mutex);
@@ -169,14 +175,12 @@ void app_main(void)
                     );
                     
                     // Loguear en consola
-                    ESP_LOGI(TAG,
-                             "IN: %.2fV/%.2fA | OUT: %.2fV/%.2fA | SoC: %.1f%%",
-                             d_panel.bus_voltage_V, d_panel.current_A, 
-                             d_bat.bus_voltage_V, d_bat.current_A, soc);
+                    ESP_LOGI(TAG, "Panel: %.2fW | Bat: %.2f%% | Servos H:%.1f V:%.1f",
+                             d_panel.power_W, soc, d_tracker.angle_h, d_tracker.angle_v);
             
                     // Enviar Telemetría MQTT
                     // Pasamos las direcciones de las estructuras locales
-                    mqtt_send_telemetry(&d_panel, &d_bat, soc, d_ldrs);
+                    mqtt_send_telemetry(&d_panel, &d_bat, soc, d_ldrs, &d_tracker);
                 }
 
 		    	vTaskDelay(pdMS_TO_TICKS(LOOP_PERIOD_S * 1000));

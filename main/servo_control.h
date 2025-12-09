@@ -4,7 +4,7 @@
 #include "driver/ledc.h"
 
 // Configuración PWM Servo
-#define SERVO_MODE             LEDC_LOW_SPEED_MODE // Compatible con S3/C3/Original
+#define SERVO_MODE             LEDC_LOW_SPEED_MODE
 #define SERVO_TIMER            LEDC_TIMER_0
 #define SERVO_TIMER_BIT        LEDC_TIMER_14_BIT
 #define SERVO_FREQ_HZ          50

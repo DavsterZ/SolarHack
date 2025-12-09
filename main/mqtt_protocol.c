@@ -69,7 +69,7 @@ void mqtt_app_start(void)
     esp_mqtt_client_start(client);
 }
 
-int mqtt_send_telemetry(ina219_data_t *panel, ina219_data_t *bat, float soc, ldr_data_t *ldrs)
+int mqtt_send_telemetry(ina219_data_t *panel, ina219_data_t *bat, float soc, ldr_data_t *ldrs, tracker_data_t *tracker)
 {
     if (!client || !s_mqtt_connected) {
         ESP_LOGW(TAG, "No se puede publicar: Cliente no conectado");
@@ -97,6 +97,12 @@ int mqtt_send_telemetry(ina219_data_t *panel, ina219_data_t *bat, float soc, ldr
         
         // Añade directamente al objeto root
         cJSON_AddNumberToObject(root, label, ldrs[i].resistance_kohm);
+    }
+    
+    // Datos Tracker (Servos)
+    if (tracker != NULL) {
+        cJSON_AddNumberToObject(root, "servo_h", tracker->angle_h);
+        cJSON_AddNumberToObject(root, "servo_v", tracker->angle_v);
     }
 
     char *post_data = cJSON_PrintUnformatted(root);
