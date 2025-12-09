@@ -58,7 +58,9 @@ El código sigue la estructura estándar de componentes de **ESP-IDF**:
 │   │   ├── mqtt_protocol.c/.h  # Cliente MQTT y serialización JSON
 │   │   ├── nvs_managment.c/.h  # Gestión de almacenamiento no volátil (Flash)
 │   │   ├── wifi_managment.c/.h # Máquina de estados WiFi (STA/AP)
-│   │   └── web_managment.c/.h  # Servidor Web y API para configuración
+│   │   ├── web_managment.c/.h  # Servidor Web y API para configuración
+│   │   ├── servo_control.c/.h  # Driver para configurar el servo
+|   |   └── solar_tracker.c/.h  # Driver para unir los datos leidos del ADC con el servo
 │   │
 │   └── CMakeLists.txt
 ├── CMakeLists.txt
