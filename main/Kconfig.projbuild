@@ -154,5 +154,25 @@ menu "Configuración del Sistema"
             help
                 Cada cuánto tiempo se recalcula la posición.
     endmenu
+    
+    menu "Ahorro de Energía (Deep Sleep)"
+        config SLEEP_START_HOUR
+            int "Hora de inicio de sueño (0-23)"
+            default 20
+            help
+                Hora a la que el sistema aparca los servos y entra en Deep Sleep (aprox. anochecer).
+
+        config SLEEP_WAKE_HOUR
+            int "Hora de despertar (0-23)"
+            default 7
+            help
+                Hora a la que el sistema se despierta para buscar el sol (aprox. amanecer).
+
+        config TIME_ZONE
+            string "Zona Horaria (Formato POSIX)"
+            default "CET-1CEST,M3.5.0,M10.5.0/3"
+            help
+                Cadena POSIX para la zona horaria (Ejemplo por defecto: España/Europa Central).
+    endmenu
 
 endmenu

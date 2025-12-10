@@ -11,3 +11,6 @@ extern tracker_data_t g_tracker_data;
 
 // Iniciar el hardware de servos y la tarea de seguimiento
 void solar_tracker_start(void);
+
+// Mueve los servos a posición de reposo (ej: 90 grados H, 0 grados V)
+void solar_tracker_park(void);

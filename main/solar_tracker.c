@@ -117,3 +117,28 @@ void solar_tracker_start(void) {
     // Crear la tarea
     xTaskCreate(tracker_task, "tracker_logic", 4096, NULL, 5, NULL);
 }
+
+void solar_tracker_park(void)
+{
+	ESP_LOGI(TAG, "Aparcando servos para dormir...");
+
+    // Ajusta estos valores según tu montaje físico
+    float park_h = 90.0f; 
+    float park_v = 0.0f;  
+
+    servo_set_angle(CHANNEL_H, park_h);
+    servo_set_angle(CHANNEL_V, park_v);
+    
+    // Actualizamos la estructura global por si se envía un último MQTT
+    if (g_data_mutex != NULL) {
+        if (xSemaphoreTake(g_data_mutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+            g_tracker_data.angle_h = park_h;
+            g_tracker_data.angle_v = park_v;
+            xSemaphoreGive(g_data_mutex);
+        }
+    }
+
+    // Importante: Dar tiempo físico a los motores para llegar a la posición
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    ESP_LOGI(TAG, "Servos aparcados.");
+}
