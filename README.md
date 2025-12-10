@@ -160,8 +160,8 @@ Los datos se envían al tópico configurado con la siguiente estructura JSON, li
   "ldr_2": 18.1,      // Resistencia LDR 2 (kOhms)
   "ldr_3": 50.5,      // Resistencia LDR 3 (kOhms)
   "ldr_4": 48.2       // Resistencia LDR 4 (kOhms)
-   "servo_h": 134     // Grados del servo en el eje X
-   "servo_v": 90      // Grados del servo en el eje Y
+  "servo_h": 134     // Grados del servo en el eje X
+  "servo_v": 90      // Grados del servo en el eje Y
 }
 ```
 
