@@ -10,6 +10,7 @@
 #include "wifi_managment.h"
 #include "mqtt_protocol.h"
 #include "solar_tracker.h"
+#include "web_managment.h"
 
 #include "esp_log.h"
 #include "esp_err.h"
