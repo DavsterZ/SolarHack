@@ -174,5 +174,20 @@ menu "Configuración del Sistema"
             help
                 Cadena POSIX para la zona horaria (Ejemplo por defecto: España/Europa Central).
     endmenu
+    
+    menu "Telegram Bot"
+        config TELEGRAM_TOKEN
+            string "Token del Bot"
+            default "TU_TOKEN_AQUI"
+            help
+                El token que te da @BotFather (ej: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11).
+
+        config TELEGRAM_CHAT_ID
+            string "ID de Chat Autorizado"
+            default "TU_CHAT_ID"
+            help
+                Tu ID numérico de usuario (puedes obtenerlo con @userinfobot).
+                Esto es CRITICO para que nadie más controle tu panel.
+    endmenu
 
 endmenu
