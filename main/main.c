@@ -11,6 +11,7 @@
 #include "mqtt_protocol.h"
 #include "solar_tracker.h"
 #include "web_managment.h"
+#include "telegram_bot.h"
 
 #include "esp_log.h"
 #include "esp_err.h"
@@ -218,6 +219,8 @@ void app_main(void)
             }
 
 			setup_time();
+
+			telegram_bot_start();
 
             // Aquí lanzamos tus tareas
             xTaskCreate(ina_task, "ina_task", 4096, NULL, 5, NULL);
