@@ -175,8 +175,8 @@ void app_main(void)
                     );
                     
                     // Loguear en consola
-                    ESP_LOGI(TAG, "Panel: %.2fW | Bat: %.2f%% | Servos H:%.1f V:%.1f",
-                             d_panel.power_W, soc, d_tracker.angle_h, d_tracker.angle_v);
+                    ESP_LOGI(TAG, "Panel: %.2fW | Bat: %.2f%% | Voltage: %.2fV| Servos H:%.1f V:%.1f",
+                             d_panel.power_W, soc, d_panel.bus_voltage_V, d_tracker.angle_h, d_tracker.angle_v);
             
                     // Enviar Telemetría MQTT
                     // Pasamos las direcciones de las estructuras locales

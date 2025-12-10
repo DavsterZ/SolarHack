@@ -14,7 +14,6 @@
 
 
 #define BROKER_URL_MQTT CONFIG_BROKER_URL_MQTT
-#define ACCESS_TOKEN "4NBca7arMs11qx2F7P65"
 
 static const char *TAG = "MQTT";
 
@@ -79,15 +78,15 @@ int mqtt_send_telemetry(ina219_data_t *panel, ina219_data_t *bat, float soc, ldr
     cJSON *root = cJSON_CreateObject();
     
     // Datos Panel Solar
-    cJSON_AddNumberToObject(root, "panel_v", panel->bus_voltage_V);
-    cJSON_AddNumberToObject(root, "panel_i", panel->current_A);
-    cJSON_AddNumberToObject(root, "panel_p", panel->power_W);
+    cJSON_AddNumberToObject(root, "solarVoltage", panel->bus_voltage_V);
+    cJSON_AddNumberToObject(root, "solarCurrent", panel->current_A);
+    cJSON_AddNumberToObject(root, "solarPower", panel->power_W);
 
     // Datos Batería
-    cJSON_AddNumberToObject(root, "bat_v", bat->bus_voltage_V);
-    cJSON_AddNumberToObject(root, "bat_i", bat->current_A);
-    cJSON_AddNumberToObject(root, "bat_p", bat->power_W);
-    cJSON_AddNumberToObject(root, "bat_soc", soc);
+    cJSON_AddNumberToObject(root, "batteryVoltage", bat->bus_voltage_V);
+    cJSON_AddNumberToObject(root, "batteryCurrent", bat->current_A);
+    cJSON_AddNumberToObject(root, "batteryPower", bat->power_W);
+    cJSON_AddNumberToObject(root, "batteryChargeLvl", soc);
 
     // Datos LDRs (enviamos resistencia kOhm)
     for(int i = 0; i < LDR_COUNT; i++) {
