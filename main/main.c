@@ -15,12 +15,22 @@
 #include "esp_log.h"
 #include "esp_err.h"
 
+#include <time.h>
+#include <sys/time.h>
+#include "esp_sntp.h"
+#include "esp_sleep.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 
 #define BAT_CAPACITY_AH  strtof(CONFIG_BAT_CAPACITY_AH, NULL)
 #define LOOP_PERIOD_S    ((float)CONFIG_MAIN_LOOP_PERIOD_S)
+
+// Deep Sleep
+#define SLEEP_START_HOUR    CONFIG_SLEEP_START_HOUR
+#define SLEEP_WAKE_HOUR     CONFIG_SLEEP_WAKE_HOUR
+#define TIME_ZONE           CONFIG_TIME_ZONE
 
 // Configuracion Pines I2C
 #define I2C_MASTER_NUM I2C_NUM_0
@@ -66,6 +76,92 @@ static esp_err_t i2c_master_init(void)
 		initialized = true;
 
 	return err;
+}
+
+// Esta función configura el servidor NTP y espera a que la hora se sincronice.
+static void setup_time(void)
+{
+    ESP_LOGI(TAG, "Iniciando sincronización SNTP...");
+    esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
+    esp_sntp_setservername(0, "pool.ntp.org");
+    esp_sntp_init();
+
+    // Configurar Timezone
+    setenv("TZ", TIME_ZONE, 1);
+    tzset();
+
+    // Esperar sincronización (máximo 15 segundos)
+    int retry = 0;
+    const int retry_count = 15;
+    while (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET && ++retry < retry_count) {
+        ESP_LOGI(TAG, "Esperando hora del sistema... (%d/%d)", retry, retry_count);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+    ESP_LOGI(TAG, "Hora actual: %02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+}
+
+static void check_and_enter_sleep(void)
+{
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+
+    // Verificar si el año es > 2000 (significa que tenemos hora válida)
+    if (timeinfo.tm_year < (2016 - 1900)) {
+        ESP_LOGW(TAG, "Hora no sincronizada aún, saltando check de sueño.");
+        return;
+    }
+
+    int current_hour = timeinfo.tm_hour;
+
+    // Condición de Noche: 
+    // Si la hora actual es >= Hora Dormir (ej. 20) O es < Hora Despertar (ej. 7)
+    // Nota: El segundo caso cubre si reinicias el sistema a las 3 de la mañana.
+    bool is_night = (current_hour >= SLEEP_START_HOUR) || (current_hour < SLEEP_WAKE_HOUR);
+
+    if (is_night) {
+        ESP_LOGI(TAG, "Es de noche (%d:00). Preparando Deep Sleep...", current_hour);
+
+        // 1. Aparcar servos
+        solar_tracker_park();
+
+        // 2. Calcular segundos hasta despertar
+        struct tm wake_tm = timeinfo;
+        wake_tm.tm_min = 0;
+        wake_tm.tm_sec = 0;
+        
+        if (current_hour >= SLEEP_START_HOUR) {
+            // Caso A: Son las 21:00, despertar mañana a las 07:00
+            wake_tm.tm_mday += 1; // Mañana
+            wake_tm.tm_hour = SLEEP_WAKE_HOUR;
+        } else {
+            // Caso B: Son las 03:00, despertar hoy a las 07:00
+            wake_tm.tm_hour = SLEEP_WAKE_HOUR;
+        }
+
+        time_t wake_time = mktime(&wake_tm);
+        double seconds_to_sleep = difftime(wake_time, now);
+
+        if (seconds_to_sleep <= 0) {
+            seconds_to_sleep = 60; // Seguridad por si el cálculo falla
+        }
+
+        ESP_LOGI(TAG, "Durmiendo durante %.0f segundos hasta las %02d:00...", seconds_to_sleep, SLEEP_WAKE_HOUR);
+
+        // Configurar Timer Wakeup
+        // Deep sleep usa microsegundos
+        esp_sleep_enable_timer_wakeup((uint64_t)seconds_to_sleep * 1000000ULL);
+
+        // Entrar en sueño profundo
+        esp_deep_sleep_start();
+        // El código nunca pasa de aquí, al despertar reinicia el ESP32
+    }
 }
 
 void app_main(void)
@@ -120,6 +216,8 @@ void app_main(void)
             if (server != NULL) {
                 register_ota_handlers(server);
             }
+
+			setup_time();
 
             // Aquí lanzamos tus tareas
             xTaskCreate(ina_task, "ina_task", 4096, NULL, 5, NULL);
@@ -187,6 +285,8 @@ void app_main(void)
                     // Enviar Telemetría MQTT
                     // Pasamos las direcciones de las estructuras locales
                     mqtt_send_telemetry(&d_panel, &d_bat, soc, d_ldrs, &d_tracker);
+
+					check_and_enter_sleep();
                 }
 
 		    	vTaskDelay(pdMS_TO_TICKS(LOOP_PERIOD_S * 1000));
