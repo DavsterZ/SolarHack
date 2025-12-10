@@ -188,6 +188,12 @@ menu "Configuración del Sistema"
             help
                 Tu ID numérico de usuario (puedes obtenerlo con @userinfobot).
                 Esto es CRITICO para que nadie más controle tu panel.
+                
+        config POLLING_INTERVAL_MS
+            int "Periodo Lectura Telegram Bot (ms)"
+            default 5000
+            help
+                Cada cuánto tiempo se revisan los mensajes del telegram bot.
     endmenu
 
 endmenu
