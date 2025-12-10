@@ -95,7 +95,7 @@ int mqtt_send_telemetry(ina219_data_t *panel, ina219_data_t *bat, float soc, ldr
         snprintf(label, sizeof(label), "ldr_%d", i + 1);
         
         // Añade directamente al objeto root
-        cJSON_AddNumberToObject(root, label, ldrs[i].resistance_kohm);
+        cJSON_AddNumberToObject(root, label, ldrs[i].raw);
     }
     
     // Datos Tracker (Servos)
