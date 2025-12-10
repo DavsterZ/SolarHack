@@ -145,17 +145,19 @@ Estructura de Datos MQTT
 Los datos se envían al tópico configurado con la siguiente estructura JSON, lista para ser visualizada en dashboards como ThingsBoard:
 ``` JSON
 {
-  "panel_v": 18.50,   // Voltaje del Panel (V)
-  "panel_i": 0.45,    // Corriente del Panel (A)
-  "panel_p": 8.32,    // Potencia del Panel (W)
-  "bat_v": 4.10,      // Voltaje de la Batería (V)
-  "bat_i": 0.20,      // Corriente de Batería (A, +Descarga / -Carga)
-  "bat_p": 0.82,      // Potencia de Batería (W)
-  "bat_soc": 95.4,    // Estado de Carga estimado (%)
+  "solarVoltage": 18.50,   // Voltaje del Panel (V)
+  "solarCurrent": 0.45,    // Corriente del Panel (A)
+  "solarPower": 8.32,    // Potencia del Panel (W)
+  "batteryVoltage": 4.10,      // Voltaje de la Batería (V)
+  "batteryCurrent": 0.20,      // Corriente de Batería (A, +Descarga / -Carga)
+  "batteryPower": 0.82,      // Potencia de Batería (W)
+  "batteryChargeLvl": 95.4,    // Estado de Carga estimado (%)
   "ldr_1": 15.2,      // Resistencia LDR 1 (kOhms)
   "ldr_2": 18.1,      // Resistencia LDR 2 (kOhms)
   "ldr_3": 50.5,      // Resistencia LDR 3 (kOhms)
   "ldr_4": 48.2       // Resistencia LDR 4 (kOhms)
+   "servo_h": 134     // Grados del servo en el eje X
+   "servo_v": 90      // Grados del servo en el eje Y
 }
 ```
 
@@ -173,6 +175,6 @@ Los datos se envían al tópico configurado con la siguiente estructura JSON, li
 
 * [x] Almacenamiento persistente (NVS).
 
-* [ ] Soporte para actualizaciones OTA (Over-The-Air).
+* [x] Soporte para actualizaciones OTA (Over-The-Air).
 
 * [ ] Optimización de energía (Deep Sleep).
