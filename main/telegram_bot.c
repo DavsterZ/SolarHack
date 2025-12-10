@@ -95,7 +95,7 @@ static void handle_command(char *text)
 		if (xSemaphoreTake(g_data_mutex, pdMS_TO_TICKS(200))) {
             v_bat = g_ina219_data[INA219_DEVICE_BATTERY].bus_voltage_V;
             v_panel = g_ina219_data[INA219_DEVICE_PANEL].bus_voltage_V;
-            soc = g_battery_soc; // Asumiendo que esta global existe o se lee de g_ina219_data si la moviste
+            soc = g_battery_soc;
             xSemaphoreGive(g_data_mutex);
         }
 		telegram_send_text("🔋 Estado:\nBateria: %.2fV (%.1f%%)\nPanel: %.2fV", v_bat, soc, v_panel);
