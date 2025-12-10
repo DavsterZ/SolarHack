@@ -1,0 +1,13 @@
+menu "Control servos"
+	config SERVO_PIN_HORIZ
+            int "Pin Servo Horizontal (Base)"
+            default 18
+            help
+                GPIO conectado a la señal PWM del servo de giro.
+
+    config SERVO_PIN_VERT
+        int "Pin Servo Vertical (Elevación)"
+        default 19
+        help
+            GPIO conectado a la señal PWM del servo de altura.
+endmenu

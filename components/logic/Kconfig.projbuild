@@ -1,0 +1,19 @@
+menu "Solar Tracker (Servos)"
+    config TRACKER_TOLERANCE
+        int "Tolerancia (Banda Muerta)"
+        default 100
+        help
+            Diferencia mínima de lectura ADC para mover el servo. Evita vibraciones.
+
+    config TRACKER_STEP_DEG
+        string "Pasos por ciclo (Grados)"
+        default "2.0"
+        help
+            Cuantos grados se mueve el servo en cada ciclo de actualización.
+            
+    config TRACKER_UPDATE_MS
+        int "Periodo de actualización (ms)"
+        default 100
+        help
+            Cada cuánto tiempo se recalcula la posición.
+endmenu

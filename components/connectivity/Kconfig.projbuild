@@ -1,0 +1,59 @@
+menu "WiFi (Modo AP)"
+    config WIFI_AP_SSID
+        string "SSID del AP de Configuración"
+        default "ESP32_CONFIG"
+        help
+            Nombre de la red WiFi que generará el ESP32 si no tiene credenciales.
+
+    config WIFI_AP_PASS
+        string "Contraseña del AP (Dejar vacío para abierto)"
+        default ""
+        help
+            Contraseña WPA2 para el AP. Si se deja vacío, la red será abierta.
+
+    config WIFI_AP_MAX_CONN
+        int "Máximo de clientes AP"
+        default 4
+        range 1 10
+endmenu
+
+menu "Configuración MQTT"
+    config BROKER_URL_MQTT
+        string "URL del Broker MQTT"
+        default "mqtt://demo.thingsboard.io"
+        help
+            URL completa del broker (ej: mqtt://192.168.1.100 o mqtt://broker.hivemq.com)
+
+    config MQTT_TOKEN
+        string "Token de Acceso / Username"
+        default "TU_ACCESS_TOKEN"
+        help
+            Usuario o Token para autenticación (común en ThingsBoard).
+            
+    config MQTT_TOPIC_TELEMETRY
+        string "Tópico de Telemetría"
+        default "v1/devices/me/telemetry"
+        help
+            Tópico donde se publicará el JSON.
+endmenu
+
+menu "Telegram Bot"
+    config TELEGRAM_TOKEN
+        string "Token del Bot"
+        default "TU_TOKEN_AQUI"
+        help
+            El token que te da @BotFather (ej: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11).
+
+    config TELEGRAM_CHAT_ID
+        string "ID de Chat Autorizado"
+        default "TU_CHAT_ID"
+        help
+            Tu ID numérico de usuario (puedes obtenerlo con @userinfobot).
+            Esto es CRITICO para que nadie más controle tu panel.
+            
+    config POLLING_INTERVAL_MS
+        int "Periodo Lectura Telegram Bot (ms)"
+        default 5000
+        help
+            Cada cuánto tiempo se revisan los mensajes del telegram bot.
+endmenu
