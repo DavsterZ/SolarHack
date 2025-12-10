@@ -30,7 +30,7 @@ void url_decode(char *src, char *dest) {
     *pdest = '\0';
 }
 
-esp_err_t wifi_get_handler(httpd_req_t *req) {
+static esp_err_t wifi_get_handler(httpd_req_t *req) {
     wifi_ap_record_t ap_info[MAX_APS];
     memset(ap_info, 0, sizeof(ap_info));
     
@@ -97,7 +97,7 @@ esp_err_t wifi_get_handler(httpd_req_t *req) {
 }
 
 
-esp_err_t wifi_post_handler(httpd_req_t *req) {
+static esp_err_t wifi_post_handler(httpd_req_t *req) {
     char ssid[33] = {0}, pass[65] = {0};
     size_t sz = req->content_len;
     
@@ -152,7 +152,7 @@ esp_err_t wifi_post_handler(httpd_req_t *req) {
 }
 
 
-esp_err_t ota_get_handler(httpd_req_t *req) {
+static esp_err_t ota_get_handler(httpd_req_t *req) {
     httpd_resp_set_type(req, "text/html");
     const char *html = 
         "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
@@ -198,7 +198,7 @@ esp_err_t ota_get_handler(httpd_req_t *req) {
 }
 
 
-esp_err_t ota_post_handler(httpd_req_t *req) {
+static esp_err_t ota_post_handler(httpd_req_t *req) {
     char buf[1024];
     esp_ota_handle_t update_handle = 0;
     const esp_partition_t *update_partition = NULL;
@@ -287,25 +287,32 @@ httpd_handle_t start_webserver(void) {
         httpd_register_uri_handler(server, &get_uri);
         httpd_register_uri_handler(server, &post_uri);
         
-        httpd_uri_t get_ota = {
-            .uri = "/ota",
-            .method = HTTP_GET,
-            .handler = ota_get_handler,
-            .user_ctx = NULL
-        };
-        httpd_register_uri_handler(server, &get_ota);
-
-        httpd_uri_t post_ota = {
-            .uri = "/ota",
-            .method = HTTP_POST,
-            .handler = ota_post_handler,
-            .user_ctx = NULL
-        };
-        httpd_register_uri_handler(server, &post_ota);
-        
         ESP_LOGI(TAG_WEB, "Server started");
     } else {
         ESP_LOGE(TAG_WEB, "Server start failed");
     }
     return server;
+}
+
+void register_ota_handlers(httpd_handle_t server) 
+{
+	if (server == NULL) return;
+
+    httpd_uri_t get_ota = {
+        .uri = "/ota",
+        .method = HTTP_GET,
+        .handler = ota_get_handler,
+        .user_ctx = NULL
+    };
+    httpd_register_uri_handler(server, &get_ota);
+
+    httpd_uri_t post_ota = {
+        .uri = "/ota",
+        .method = HTTP_POST,
+        .handler = ota_post_handler,
+        .user_ctx = NULL
+    };
+    httpd_register_uri_handler(server, &post_ota);
+
+    ESP_LOGI(TAG_WEB, "Endpoints OTA registrados correctamente");
 }

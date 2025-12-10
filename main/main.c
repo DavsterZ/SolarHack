@@ -31,7 +31,6 @@
 
 SemaphoreHandle_t g_data_mutex = NULL;
 
-
 static const char *TAG = "MAIN";
 
 // Configurar Init I2C
@@ -115,6 +114,12 @@ void app_main(void)
 		if (bits & WIFI_CONNECTED_BIT) {
             ESP_LOGI(TAG, "WiFi Conectado. Iniciando Tareas de Sensores...");
             
+            httpd_handle_t server = start_webserver();
+
+            if (server != NULL) {
+                register_ota_handlers(server);
+            }
+
             // Aquí lanzamos tus tareas
             xTaskCreate(ina_task, "ina_task", 4096, NULL, 5, NULL);
             xTaskCreate(adc_task, "adc_task", 4096, NULL, 5, NULL);

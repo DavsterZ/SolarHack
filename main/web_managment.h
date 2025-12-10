@@ -5,13 +5,8 @@
 #include "esp_err.h"
 #include <esp_log.h>
 
-esp_err_t wifi_post_handler(httpd_req_t *req);
 
-esp_err_t wifi_get_handler(httpd_req_t *req);
-
-esp_err_t ota_get_handler(httpd_req_t *req);
-
-esp_err_t ota_post_handler(httpd_req_t *req);
+void register_ota_handlers(httpd_handle_t server);
 
 httpd_handle_t start_webserver(void);
 
