@@ -67,6 +67,8 @@ El código sigue la estructura estándar de componentes de **ESP-IDF**:
 └── README.md
 ```
 
+---
+
 ## ⚙️ Configuración e Instalación
 
 #### 1. Requisitos Previos
@@ -111,6 +113,8 @@ Conecta el ESP32 al puerto USB y ejecuta:
 ```bash
 idf.py build flash monitor
 ```
+
+---
 
 ## 🚀 Guía de Uso
 
