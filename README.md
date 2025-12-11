@@ -173,6 +173,6 @@ Los datos se envían al tópico configurado con la siguiente estructura JSON, li
 
 * [x] Almacenamiento persistente (NVS).
 
-* [ ] Soporte para actualizaciones OTA (Over-The-Air).
+* [x] Soporte para actualizaciones OTA (Over-The-Air).
 
 * [ ] Optimización de energía (Deep Sleep).
