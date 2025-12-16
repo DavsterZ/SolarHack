@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include "esp_err.h"
 #include "esp_sleep.h"
@@ -33,7 +34,7 @@ void telegram_send_text(const char *format, ...)
 	char msg_buffer[512];
 	va_list args;
 	va_start(args, format);
-	vsniprintf(msg_buffer, sizeof(msg_buffer), format, args);
+	vsnprintf(msg_buffer, sizeof(msg_buffer), format, args);
 	va_end(args);
 
 	ESP_LOGI(TAG, "Enviando respuesta: %s", msg_buffer);
@@ -98,7 +99,7 @@ static void handle_command(char *text)
             soc = g_battery_soc;
             xSemaphoreGive(g_data_mutex);
         }
-		telegram_send_text("🔋 Estado:\nBateria: %.2fV (%.1f%%)\nPanel: %.2fV", v_bat, soc, v_panel);
+		telegram_send_text("🔋 Estado:\nBateria: %.2f V (%.1f%%)\nPanel: %.2f V", v_bat, soc, v_panel);
 	}
 	else if (strncmp(text, "/park", 5) == 0) {
         telegram_send_text("🚧 Aparcando servos...");
@@ -106,15 +107,75 @@ static void handle_command(char *text)
         telegram_send_text("✅ Servos aparcados.");
     }
 	else if (strncmp(text, "/sleep", 6) == 0) {
-        telegram_send_text("💤 Entrando en Deep Sleep forzado...");
-        vTaskDelay(pdMS_TO_TICKS(1000)); // Dar tiempo a enviar el mensaje
+        telegram_send_text("💤 Entrando en Deep Sleep forzado (1 min)...");
         
-        esp_sleep_enable_timer_wakeup(3600 * 1000000ULL); // 1 hora de siesta
+        ESP_LOGI(TAG, "Confirmando mensaje a Telegram antes de dormir...");
+        
+        esp_http_client_config_t config = {
+            .url = "https://api.telegram.org",
+            .transport_type = HTTP_TRANSPORT_OVER_SSL,
+            .crt_bundle_attach = esp_crt_bundle_attach,
+            .timeout_ms = 2000, 
+        };
+
+        esp_http_client_handle_t client = esp_http_client_init(&config);
+        
+        // Construimos la URL para confirmar el mensaje actual (offset + 1)
+        char url[512];
+        snprintf(url, sizeof(url), "https://api.telegram.org/bot%s/getUpdates?offset=%lld&limit=1&timeout=0", TELEGRAM_TOKEN, last_update_id + 1);
+        
+        esp_http_client_set_url(client, url);
+        esp_http_client_set_method(client, HTTP_METHOD_GET);
+        
+        // Enviamos la confirmación y esperamos a que termine
+        esp_err_t err = esp_http_client_perform(client);
+        if (err == ESP_OK) {
+            ESP_LOGI(TAG, "Mensaje confirmado (Flush OK).");
+        } else {
+            ESP_LOGW(TAG, "Fallo al confirmar mensaje: %s", esp_err_to_name(err));
+        }
+        
+        esp_http_client_cleanup(client);
+
+        // Pequeña espera para asegurar que la transmisión se complete físicamente
+        vTaskDelay(pdMS_TO_TICKS(1000)); 
+        
+        // Configurar tiempo (ejemplo: 1 minuto = 60 seg)
+        esp_sleep_enable_timer_wakeup(60 * 1000000ULL); 
         esp_deep_sleep_start();
     }
 	else if (strncmp(text, "/reset", 6) == 0) {
         telegram_send_text("🔄 Reiniciando...");
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        
+        ESP_LOGI(TAG, "Confirmando mensaje a Telegram antes del reset...");
+        
+        esp_http_client_config_t config = {
+            .url = "https://api.telegram.org",
+            .transport_type = HTTP_TRANSPORT_OVER_SSL,
+            .crt_bundle_attach = esp_crt_bundle_attach,
+            .timeout_ms = 2000,
+        };
+
+        esp_http_client_handle_t client = esp_http_client_init(&config);
+        
+        // Hacemos una petición 'getUpdates' con offset = last_update_id + 1
+        // Esto le confirma a Telegram que hemos procesado el mensaje actual.
+        char url[512];
+        snprintf(url, sizeof(url), "https://api.telegram.org/bot%s/getUpdates?offset=%lld&limit=1&timeout=0", TELEGRAM_TOKEN, last_update_id + 1);
+        
+        esp_http_client_set_url(client, url);
+        esp_http_client_set_method(client, HTTP_METHOD_GET);
+        
+        esp_err_t err = esp_http_client_perform(client);
+        if (err == ESP_OK) {
+            ESP_LOGI(TAG, "Mensaje confirmado (Flush OK).");
+        } else {
+            ESP_LOGW(TAG, "Fallo al confirmar mensaje: %s", esp_err_to_name(err));
+        }
+        
+        esp_http_client_cleanup(client);
+
+        vTaskDelay(pdMS_TO_TICKS(1000)); // Espera de seguridad
         esp_restart();
     }
 	else {

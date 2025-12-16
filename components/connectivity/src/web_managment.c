@@ -206,7 +206,7 @@ static esp_err_t ota_post_handler(httpd_req_t *req) {
 
     ESP_LOGI(TAG_WEB, "Iniciando OTA...");
 
-    // 1. Buscar la siguiente partición OTA libre
+    // Buscar la siguiente partición OTA libre
     update_partition = esp_ota_get_next_update_partition(NULL);
     if (update_partition == NULL) {
         ESP_LOGE(TAG_WEB, "No hay partición OTA disponible");
@@ -214,7 +214,7 @@ static esp_err_t ota_post_handler(httpd_req_t *req) {
         return ESP_FAIL;
     }
 
-    // 2. Iniciar la escritura OTA
+    // Iniciar la escritura OTA
     err = esp_ota_begin(update_partition, OTA_SIZE_UNKNOWN, &update_handle);
     if (err != ESP_OK) {
         ESP_LOGE(TAG_WEB, "Error en esp_ota_begin");
@@ -222,7 +222,7 @@ static esp_err_t ota_post_handler(httpd_req_t *req) {
         return ESP_FAIL;
     }
 
-    // 3. Bucle de lectura del socket y escritura en flash
+    // Bucle de lectura del socket y escritura en flash
     int received;
     int remaining = req->content_len;
 
